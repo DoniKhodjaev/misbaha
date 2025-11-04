@@ -1050,9 +1050,7 @@ export default function App() {
         />
       </View>
       
-      {Platform.OS === 'web' ? (
-        <View style={styles.container}>
-      
+      <View style={styles.container}>
       {/* Навигация в стиле iOS 26 с эффектом жидкого стекла */}
       <View style={styles.tabBarWrapper}>
         <View style={styles.tabBarContainer}>
