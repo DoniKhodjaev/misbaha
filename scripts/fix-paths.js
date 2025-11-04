@@ -28,6 +28,7 @@ html = html.replace(/(src|href)=["']\/(?!misbaha\/)([^"'?#]+)["']/g, (match, att
     return match;
   }
   // Убеждаемся, что путь начинается с /, а не с префикса misbaha
+  // Добавляем слеш после /misbaha
   const newPath = `${attr}="/misbaha/${filePath}"`;
   console.log(`  Replacing: ${match} -> ${newPath}`);
   return newPath;
@@ -37,6 +38,7 @@ html = html.replace(/(src|href)=["']\/(?!misbaha\/)([^"'?#]+)["']/g, (match, att
 html = html.replace(/\/misbaha\/misbaha\//g, '/misbaha/');
 
 // Исправляем неправильные пути типа misbaha_expo -> misbaha/_expo
+// и misbahafavicon -> misbaha/favicon
 html = html.replace(/\/misbaha([^\/])/g, '/misbaha/$1');
 
 // Проверяем, были ли изменения
