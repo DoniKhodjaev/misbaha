@@ -40,7 +40,8 @@
       "orientation": "portrait",
       "startUrl": "/misbaha/",
       "manifest": "./web/manifest.json",
-      "bundler": "metro"
+      "bundler": "metro",
+      "baseUrl": "/misbaha"
     }
   }
 }
