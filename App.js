@@ -1039,7 +1039,7 @@ export default function App() {
 
   return (
     <View style={styles.appContainer}>
-      <StatusBar style="dark" backgroundColor="#004734" translucent={false} />
+      <StatusBar style="light" backgroundColor="#004734" translucent={true} />
       
       {/* Общий фон для всего приложения */}
       <View style={styles.appBackgroundContainer}>
@@ -1050,7 +1050,8 @@ export default function App() {
         />
       </View>
       
-      <SafeAreaView style={styles.container}>
+      {Platform.OS === 'web' ? (
+        <View style={styles.container}>
       
       {/* Навигация в стиле iOS 26 с эффектом жидкого стекла */}
       <View style={styles.tabBarWrapper}>
@@ -1231,7 +1232,7 @@ export default function App() {
           </View>
         </View>
       </Modal>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -1244,7 +1245,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
-    paddingTop: Platform.OS === 'web' ? 0 : 0,
+    paddingTop: 0,
     paddingBottom: isIPhone16Pro ? 110 : 100,
   },
   navigation: {

@@ -69,44 +69,41 @@ if (htmlFixed) {
   console.log('✅ Fixed paths in index.html');
 }
 
+// Копируем иконку в dist если её там нет
+const iconSourcePath = path.join(__dirname, '..', 'assets', 'ico.png');
+const iconDestPath = path.join(distPath, 'assets', 'assets', 'ico.png');
+const iconDestDir = path.join(distPath, 'assets', 'assets');
+
+if (fs.existsSync(iconSourcePath) && !fs.existsSync(iconDestPath)) {
+  if (!fs.existsSync(iconDestDir)) {
+    fs.mkdirSync(iconDestDir, { recursive: true });
+  }
+  fs.copyFileSync(iconSourcePath, iconDestPath);
+  console.log('✅ Copied ico.png to dist/assets/assets/');
+}
+
 // Добавляем мета-теги для iOS PWA
 console.log('🍎 Adding iOS PWA meta tags...');
 let htmlContent = fs.readFileSync(indexPath, 'utf8');
 
-// Проверяем, есть ли уже эти мета-теги
-if (!htmlContent.includes('apple-mobile-web-app-capable')) {
-  // Находим закрывающий тег </head> и добавляем мета-теги перед ним
-  // Используем абсолютные пути для иконок
-  const iosMetaTags = `
+// Удаляем старые мета-теги для iOS если они есть
+htmlContent = htmlContent.replace(/<meta name="apple-mobile-web-app-[^"]*"[^>]*>/g, '');
+htmlContent = htmlContent.replace(/<link rel="apple-touch-icon"[^>]*>/g, '');
+htmlContent = htmlContent.replace(/<meta name="viewport"[^>]*>/g, '');
+
+// Добавляем правильные мета-теги перед </head>
+const iosMetaTags = `
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Misbaha">
     <link rel="apple-touch-icon" href="/misbaha/assets/assets/ico.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/misbaha/assets/assets/ico.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/misbaha/assets/assets/ico.png">`;
-  
-  htmlContent = htmlContent.replace('</head>', `${iosMetaTags}\n  </head>`);
-  fs.writeFileSync(indexPath, htmlContent, 'utf8');
-  console.log('✅ Added iOS PWA meta tags to index.html');
-} else {
-  // Обновляем существующие мета-теги, если они есть
-  htmlContent = htmlContent.replace(
-    /<meta name="apple-mobile-web-app-status-bar-style" content="[^"]*">/g,
-    '<meta name="apple-mobile-web-app-status-bar-style" content="black">'
-  );
-  // Обновляем пути к иконкам
-  htmlContent = htmlContent.replace(
-    /<link rel="apple-touch-icon"[^>]*href="[^"]*ico\.png"[^>]*>/g,
-    ''
-  );
-  const iosIcons = `
-    <link rel="apple-touch-icon" href="/misbaha/assets/assets/ico.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/misbaha/assets/assets/ico.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="/misbaha/assets/assets/ico.png">`;
-  htmlContent = htmlContent.replace('</head>', `${iosIcons}\n  </head>`);
-  fs.writeFileSync(indexPath, htmlContent, 'utf8');
-  console.log('✅ Updated iOS PWA meta tags in index.html');
-}
+
+htmlContent = htmlContent.replace('</head>', `${iosMetaTags}\n  </head>`);
+fs.writeFileSync(indexPath, htmlContent, 'utf8');
+console.log('✅ Added iOS PWA meta tags to index.html');
 
 // Исправляем пути во всех JS файлах
 function fixJsFiles(dir) {
