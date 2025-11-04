@@ -16,8 +16,8 @@ function fixPathsInFile(filePath) {
   let content = fs.readFileSync(filePath, 'utf8');
   const originalContent = content;
   
-  // ВАЖНО: Сначала исправляем двойные пути типа /assets/assets/ -> /misbaha/assets/
-  content = content.replace(/\/assets\/assets\//g, '/misbaha/assets/');
+  // ВАЖНО: Сначала исправляем двойные пути типа /assets/assets/ -> /misbaha/assets/assets/
+  content = content.replace(/\/assets\/assets\//g, '/misbaha/assets/assets/');
   
   // Затем заменяем прямые пути без кавычек
   content = content.replace(/\/assets\//g, '/misbaha/assets/');
