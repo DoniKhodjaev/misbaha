@@ -11,22 +11,49 @@ if (!fs.existsSync(indexPath)) {
 
 console.log('🔍 Fixing paths for GitHub Pages...');
 
+const fs = require('fs');
+const path = require('path');
+
+const distPath = path.join(__dirname, '..', 'dist');
+const indexPath = path.join(distPath, 'index.html');
+
+if (!fs.existsSync(indexPath)) {
+  console.error('index.html not found');
+  process.exit(1);
+}
+
+console.log('🔍 Fixing paths for GitHub Pages...');
+
 // Функция для замены путей в файле
 function fixPathsInFile(filePath) {
   let content = fs.readFileSync(filePath, 'utf8');
   const originalContent = content;
   
   // Заменяем абсолютные пути на пути с префиксом /misbaha/
-  // Обрабатываем пути начинающиеся с /, но не с /misbaha/ или http
-  content = content.replace(/["']\/(?!misbaha\/)(?!https?:\/\/)([^"'?#]+)["']/g, (match, filePath) => {
-    // Пропускаем пути, которые уже правильные или являются внешними ссылками
-    if (filePath.startsWith('http') || filePath.startsWith('//')) {
-      return match;
-    }
-    // Определяем тип кавычки
-    const quote = match[0];
-    return `${quote}/misbaha/${filePath}${quote}`;
-  });
+  // Обрабатываем пути в одинарных, двойных кавычках и обратных кавычках
+  // Пути начинающиеся с /, но не с /misbaha/ и не http/https
+  const patterns = [
+    // Одинарные кавычки
+    /(['"])\/(?!misbaha\/)(?!https?:\/\/)([^"'?#]+)\1/g,
+    // Обратные кавычки
+    /(`)\/(?!misbaha\/)(?!https?:\/\/)([^`?#]+)\1/g,
+  ];
+  
+  for (const pattern of patterns) {
+    content = content.replace(pattern, (match, quote, filePath) => {
+      // Пропускаем пути, которые уже правильные или являются внешними ссылками
+      if (!filePath || filePath.startsWith('http') || filePath.startsWith('//')) {
+        return match;
+      }
+      // Определяем тип кавычки
+      return `${quote}/misbaha/${filePath}${quote}`;
+    });
+  }
+  
+  // Также обрабатываем пути без кавычек (в некоторых случаях)
+  content = content.replace(/\/assets\//g, '/misbaha/assets/');
+  content = content.replace(/\/_expo\//g, '/misbaha/_expo/');
+  content = content.replace(/\/favicon\.ico/g, '/misbaha/favicon.ico');
   
   // Исправляем неправильно замененные пути
   content = content.replace(/\/misbaha([_a-zA-Z])/g, '/misbaha/$1');
@@ -41,6 +68,38 @@ function fixPathsInFile(filePath) {
   }
   return false;
 }
+
+// Исправляем пути в index.html
+let htmlFixed = fixPathsInFile(indexPath);
+if (htmlFixed) {
+  console.log('✅ Fixed paths in index.html');
+}
+
+// Исправляем пути во всех JS файлах
+function fixJsFiles(dir) {
+  const files = fs.readdirSync(dir);
+  let fixedCount = 0;
+  
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
+    
+    if (stat.isDirectory()) {
+      fixedCount += fixJsFiles(filePath);
+    } else if (file.endsWith('.js')) {
+      if (fixPathsInFile(filePath)) {
+        fixedCount++;
+        console.log(`✅ Fixed paths in ${path.relative(distPath, filePath)}`);
+      }
+    }
+  }
+  
+  return fixedCount;
+}
+
+const jsFilesFixed = fixJsFiles(distPath);
+console.log(`✅ Fixed paths in ${jsFilesFixed} JS file(s)`);
+console.log('🎉 All paths fixed for GitHub Pages!');
 
 // Исправляем пути в index.html
 let htmlFixed = fixPathsInFile(indexPath);
