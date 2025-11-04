@@ -1,6 +1,7 @@
-name: Deploy to GitHub Pages
+name: Deploy PWA to GitHub Pages
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -13,10 +14,13 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -35,7 +39,7 @@ jobs:
         run: npm run build:web
       
       - name: Create .nojekyll file
-        run: touch dist/.nojekyll
+        run: echo "" > dist/.nojekyll
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
