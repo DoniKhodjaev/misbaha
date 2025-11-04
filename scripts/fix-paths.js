@@ -9,63 +9,67 @@ if (!fs.existsSync(indexPath)) {
   process.exit(1);
 }
 
-let html = fs.readFileSync(indexPath, 'utf8');
-const originalHtml = html;
+console.log('🔍 Fixing paths for GitHub Pages...');
 
-console.log('🔍 Analyzing index.html...');
-
-// Находим все пути перед заменой
-const beforePaths = html.match(/(src|href)=["']\/[^"']+["']/g);
-if (beforePaths) {
-  console.log('Paths found before replacement:', beforePaths.slice(0, 5).join(', '));
+// Функция для замены путей в файле
+function fixPathsInFile(filePath) {
+  let content = fs.readFileSync(filePath, 'utf8');
+  const originalContent = content;
+  
+  // Заменяем абсолютные пути на пути с префиксом /misbaha/
+  // Обрабатываем пути начинающиеся с /, но не с /misbaha/ или http
+  content = content.replace(/["']\/(?!misbaha\/)(?!https?:\/\/)([^"'?#]+)["']/g, (match, filePath) => {
+    // Пропускаем пути, которые уже правильные или являются внешними ссылками
+    if (filePath.startsWith('http') || filePath.startsWith('//')) {
+      return match;
+    }
+    // Определяем тип кавычки
+    const quote = match[0];
+    return `${quote}/misbaha/${filePath}${quote}`;
+  });
+  
+  // Исправляем неправильно замененные пути
+  content = content.replace(/\/misbaha([_a-zA-Z])/g, '/misbaha/$1');
+  content = content.replace(/\/misbahafavicon/g, '/misbaha/favicon');
+  
+  // Исправляем дублирование префикса
+  content = content.replace(/\/misbaha\/misbaha\//g, '/misbaha/');
+  
+  if (content !== originalContent) {
+    fs.writeFileSync(filePath, content, 'utf8');
+    return true;
+  }
+  return false;
 }
 
-// ВАЖНО: Сначала исправляем уже неправильно замененные пути
-// Исправляем пути типа /misbaha_expo -> /misbaha/_expo
-html = html.replace(/\/misbaha([_a-zA-Z])/g, '/misbaha/$1');
-// Исправляем пути типа /misbahafavicon -> /misbaha/favicon
-html = html.replace(/\/misbahafavicon/g, '/misbaha/favicon');
+// Исправляем пути в index.html
+let htmlFixed = fixPathsInFile(indexPath);
+if (htmlFixed) {
+  console.log('✅ Fixed paths in index.html');
+}
 
-// Затем заменяем абсолютные пути на пути с префиксом /misbaha/
-// Обрабатываем пути начинающиеся с /, но не с /misbaha/
-html = html.replace(/(src|href)=["']\/(?!misbaha\/)([^"'?#]+)["']/g, (match, attr, filePath) => {
-  // Пропускаем пути, которые уже правильные или являются внешними ссылками
-  if (filePath.startsWith('http') || filePath.startsWith('//')) {
-    return match;
-  }
-  // Добавляем слеш после /misbaha
-  const newPath = `${attr}="/misbaha/${filePath}"`;
-  console.log(`  Replacing: ${match} -> ${newPath}`);
-  return newPath;
-});
-
-// Исправляем дублирование префикса
-html = html.replace(/\/misbaha\/misbaha\//g, '/misbaha/');
-
-// Проверяем, были ли изменения
-if (html !== originalHtml) {
-  fs.writeFileSync(indexPath, html, 'utf8');
-  console.log('✅ Fixed paths in index.html for GitHub Pages');
+// Исправляем пути во всех JS файлах
+function fixJsFiles(dir) {
+  const files = fs.readdirSync(dir);
+  let fixedCount = 0;
   
-  // Выводим информацию о замененных путях
-  const afterPaths = html.match(/\/misbaha\/[^"']+/g);
-  if (afterPaths) {
-    console.log('Paths after replacement:', afterPaths.slice(0, 5).join(', '));
-  }
-} else {
-  console.log('⚠️  No paths were changed in index.html');
-  console.log('Checking if paths already contain /misbaha...');
-  
-  // Проверяем наличие путей с /misbaha
-  if (html.includes('/misbaha/')) {
-    console.log('✅ Paths already contain /misbaha prefix');
-  } else {
-    console.log('❌ No /misbaha prefix found in paths');
-    const samplePaths = html.match(/(src|href)=["']\/[^"']+["']/g);
-    if (samplePaths) {
-      console.log('Sample paths found:', samplePaths.slice(0, 5).join(', '));
-    } else {
-      console.log('No paths found in HTML');
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
+    
+    if (stat.isDirectory()) {
+      fixedCount += fixJsFiles(filePath);
+    } else if (file.endsWith('.js')) {
+      if (fixPathsInFile(filePath)) {
+        fixedCount++;
+        console.log(`✅ Fixed paths in ${path.relative(distPath, filePath)}`);
+      }
     }
   }
+  
+  return fixedCount;
 }
+
+const jsFilesFixed = fixJsFiles(distPath);
+console.log(`✅ Fixed paths in ${jsFilesFixed} JS file(s)`);
+console.log('🎉 All paths fixed for GitHub Pages!');
