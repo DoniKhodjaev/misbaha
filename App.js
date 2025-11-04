@@ -343,21 +343,31 @@ export default function App() {
   };
 
   const vibrate = (pattern) => {
+    if (!vibrationEnabled) return;
+    
     if (Platform.OS === 'web') {
-      // Web Vibration API
-      if ('vibrate' in navigator) {
-        if (typeof pattern === 'number') {
-          navigator.vibrate(pattern);
-        } else if (Array.isArray(pattern)) {
-          navigator.vibrate(pattern);
+      // Web Vibration API - требует пользовательского взаимодействия
+      try {
+        if ('vibrate' in navigator) {
+          if (typeof pattern === 'number') {
+            navigator.vibrate(pattern);
+          } else if (Array.isArray(pattern)) {
+            navigator.vibrate(pattern);
+          }
         }
+      } catch (error) {
+        console.log('Vibration not supported or not allowed:', error);
       }
     } else {
       // React Native Vibration
-      if (typeof pattern === 'number') {
-        Vibration.vibrate(pattern);
-      } else if (Array.isArray(pattern)) {
-        Vibration.vibrate(pattern);
+      try {
+        if (typeof pattern === 'number') {
+          Vibration.vibrate(pattern);
+        } else if (Array.isArray(pattern)) {
+          Vibration.vibrate(pattern);
+        }
+      } catch (error) {
+        console.log('Vibration error:', error);
       }
     }
   };
@@ -375,10 +385,13 @@ export default function App() {
     animateButton();
     
     if (vibrationEnabled) {
-      vibrate(50);
-      if (newCount % 33 === 0) {
-        vibrate([100, 50, 100]);
-      }
+      // Вызываем вибрацию сразу после пользовательского действия
+      setTimeout(() => {
+        vibrate(50);
+        if (newCount % 33 === 0) {
+          setTimeout(() => vibrate([100, 50, 100]), 100);
+        }
+      }, 0);
     }
 
     if (newTotal === dailyGoal) {
@@ -485,55 +498,95 @@ export default function App() {
   };
 
   const resetSession = () => {
-    Alert.alert(
-      'Сброс сессии',
-      'Вы уверены, что хотите сбросить текущую сессию?',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Сбросить',
-          style: 'destructive',
-          onPress: () => {
-            const resetCounts = {};
-            zikrTypes.forEach(type => {
-              resetCounts[type.id] = 0;
-            });
-            setCounts(resetCounts);
+    if (Platform.OS === 'web') {
+      // Для веба используем window.confirm
+      if (window.confirm('Вы уверены, что хотите сбросить текущую сессию?')) {
+        const resetCounts = {};
+        zikrTypes.forEach(type => {
+          resetCounts[type.id] = 0;
+        });
+        setCounts(resetCounts);
+      }
+    } else {
+      Alert.alert(
+        'Сброс сессии',
+        'Вы уверены, что хотите сбросить текущую сессию?',
+        [
+          { text: 'Отмена', style: 'cancel' },
+          {
+            text: 'Сбросить',
+            style: 'destructive',
+            onPress: () => {
+              const resetCounts = {};
+              zikrTypes.forEach(type => {
+                resetCounts[type.id] = 0;
+              });
+              setCounts(resetCounts);
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
-  const resetAll = () => {
-    Alert.alert(
-      'Сброс всех данных',
-      'Вы уверены, что хотите сбросить все данные? Это действие нельзя отменить.',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Сбросить всё',
-          style: 'destructive',
-          onPress: async () => {
-            const resetCounts = {};
-            zikrTypes.forEach(type => {
-              resetCounts[type.id] = 0;
-            });
-            setCounts(resetCounts);
-            setTodayCount(0);
-            resetTodayCounts();
-            setHistory([]);
-            try {
-              await AsyncStorage.clear();
-              setZikrTypes(DEFAULT_ZIKR_TYPES);
-              setZikrType(DEFAULT_ZIKR_TYPES[0].id);
-            } catch (error) {
-              console.error('Ошибка очистки данных:', error);
-            }
+  const resetAll = async () => {
+    if (Platform.OS === 'web') {
+      // Для веба используем window.confirm с двойным подтверждением
+      if (window.confirm('Вы уверены, что хотите сбросить все данные? Это действие нельзя отменить.')) {
+        if (window.confirm('Это удалит ВСЕ данные. Вы абсолютно уверены?')) {
+          const resetCounts = {};
+          zikrTypes.forEach(type => {
+            resetCounts[type.id] = 0;
+          });
+          setCounts(resetCounts);
+          setTodayCount(0);
+          resetTodayCounts();
+          setHistory([]);
+          try {
+            await AsyncStorage.clear();
+            setZikrTypes(DEFAULT_ZIKR_TYPES);
+            setZikrType(DEFAULT_ZIKR_TYPES[0].id);
+            setDailyGoal(100);
+            setVibrationEnabled(true);
+            alert('Все данные успешно сброшены');
+          } catch (error) {
+            console.error('Ошибка очистки данных:', error);
+            alert('Ошибка при сбросе данных');
+          }
+        }
+      }
+    } else {
+      Alert.alert(
+        'Сброс всех данных',
+        'Вы уверены, что хотите сбросить все данные? Это действие нельзя отменить.',
+        [
+          { text: 'Отмена', style: 'cancel' },
+          {
+            text: 'Сбросить всё',
+            style: 'destructive',
+            onPress: async () => {
+              const resetCounts = {};
+              zikrTypes.forEach(type => {
+                resetCounts[type.id] = 0;
+              });
+              setCounts(resetCounts);
+              setTodayCount(0);
+              resetTodayCounts();
+              setHistory([]);
+              try {
+                await AsyncStorage.clear();
+                setZikrTypes(DEFAULT_ZIKR_TYPES);
+                setZikrType(DEFAULT_ZIKR_TYPES[0].id);
+                setDailyGoal(100);
+                setVibrationEnabled(true);
+              } catch (error) {
+                console.error('Ошибка очистки данных:', error);
+              }
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const formatDate = (dateString) => {
