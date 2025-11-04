@@ -82,6 +82,7 @@ export default function App() {
   const [showGoalInput, setShowGoalInput] = useState(false);
   const [showResetSessionConfirm, setShowResetSessionConfirm] = useState(false);
   const [showResetAllConfirm, setShowResetAllConfirm] = useState(false);
+  const [showResetAllConfirm2, setShowResetAllConfirm2] = useState(false);
   const isDataLoadedRef = React.useRef(false);
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
   const lastDateRef = React.useRef('');
@@ -113,29 +114,50 @@ export default function App() {
 
   const playBismillah = async () => {
     try {
-      // Запрашиваем разрешение на воспроизведение аудио
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-      });
-
-      // Загружаем и воспроизводим аудио файл Бисмиллах
-      try {
-        const { sound } = await Audio.Sound.createAsync(
-          require('./assets/bismillah.mp3'),
-          { shouldPlay: true, volume: 0.7 }
-        );
-        
-        audioSoundRef.current = sound;
-        sound.setOnPlaybackStatusUpdate((status) => {
-          if (status.didJustFinish) {
-            sound.unloadAsync();
-            audioSoundRef.current = null;
+      if (Platform.OS === 'web') {
+        // Для веба используем HTML5 Audio API
+        try {
+          // На вебе используем публичный путь к аудио файлу
+          const audioPath = '/misbaha/assets/assets/bismillah.mp3';
+          const audio = new Audio(audioPath);
+          audio.volume = 0.7;
+          
+          // Пытаемся воспроизвести, но если автовоспроизведение заблокировано, это нормально
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(error => {
+              console.log('Аудио не может быть воспроизведено автоматически:', error);
+              // На вебе автовоспроизведение может быть заблокировано браузером
+              // Это нормально для iOS Safari
+            });
           }
+        } catch (audioError) {
+          console.log('Аудио файл не найден для веба:', audioError);
+        }
+      } else {
+        // Для мобильных устройств используем expo-av
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
         });
-      } catch (audioError) {
-        // Если аудио файл не найден, просто продолжаем без звука
-        console.log('Аудио файл не найден, продолжаем без звука:', audioError);
+
+        // Загружаем и воспроизводим аудио файл Бисмиллах
+        try {
+          const { sound } = await Audio.Sound.createAsync(
+            require('./assets/bismillah.mp3'),
+            { shouldPlay: true, volume: 0.7 }
+          );
+          
+          audioSoundRef.current = sound;
+          sound.setOnPlaybackStatusUpdate((status) => {
+            if (status.didJustFinish) {
+              sound.unloadAsync();
+              audioSoundRef.current = null;
+            }
+          });
+        } catch (audioError) {
+          console.log('Аудио файл не найден, продолжаем без звука:', audioError);
+        }
       }
     } catch (error) {
       console.error('Ошибка воспроизведения звука:', error);
@@ -536,7 +558,7 @@ export default function App() {
 
   const resetAll = async () => {
     if (Platform.OS === 'web') {
-      // Для веба показываем модальное окно подтверждения
+      // Для веба показываем первое модальное окно подтверждения
       setShowResetAllConfirm(true);
     } else {
       Alert.alert(
@@ -545,26 +567,40 @@ export default function App() {
         [
           { text: 'Отмена', style: 'cancel' },
           {
-            text: 'Сбросить всё',
+            text: 'Сбросить',
             style: 'destructive',
             onPress: async () => {
-              const resetCounts = {};
-              zikrTypes.forEach(type => {
-                resetCounts[type.id] = 0;
-              });
-              setCounts(resetCounts);
-              setTodayCount(0);
-              resetTodayCounts();
-              setHistory([]);
-              try {
-                await AsyncStorage.clear();
-                setZikrTypes(DEFAULT_ZIKR_TYPES);
-                setZikrType(DEFAULT_ZIKR_TYPES[0].id);
-                setDailyGoal(100);
-                setVibrationEnabled(true);
-              } catch (error) {
-                console.error('Ошибка очистки данных:', error);
-              }
+              // Показываем второе подтверждение
+              Alert.alert(
+                'Подтверждение',
+                'Это удалит ВСЕ данные. Вы абсолютно уверены?',
+                [
+                  { text: 'Отмена', style: 'cancel' },
+                  {
+                    text: 'Сбросить',
+                    style: 'destructive',
+                    onPress: async () => {
+                      const resetCounts = {};
+                      zikrTypes.forEach(type => {
+                        resetCounts[type.id] = 0;
+                      });
+                      setCounts(resetCounts);
+                      setTodayCount(0);
+                      resetTodayCounts();
+                      setHistory([]);
+                      try {
+                        await AsyncStorage.clear();
+                        setZikrTypes(DEFAULT_ZIKR_TYPES);
+                        setZikrType(DEFAULT_ZIKR_TYPES[0].id);
+                        setDailyGoal(100);
+                        setVibrationEnabled(true);
+                      } catch (error) {
+                        console.error('Ошибка очистки данных:', error);
+                      }
+                    },
+                  },
+                ]
+              );
             },
           },
         ]
@@ -572,7 +608,13 @@ export default function App() {
     }
   };
 
-  const confirmResetAll = async () => {
+  const confirmResetAll = () => {
+    // Закрываем первое окно и показываем второе
+    setShowResetAllConfirm(false);
+    setShowResetAllConfirm2(true);
+  };
+
+  const confirmResetAll2 = async () => {
     const resetCounts = {};
     zikrTypes.forEach(type => {
       resetCounts[type.id] = 0;
@@ -587,7 +629,7 @@ export default function App() {
       setZikrType(DEFAULT_ZIKR_TYPES[0].id);
       setDailyGoal(100);
       setVibrationEnabled(true);
-      setShowResetAllConfirm(false);
+      setShowResetAllConfirm2(false);
       if (Platform.OS === 'web') {
         alert('Все данные успешно сброшены');
       }
@@ -972,7 +1014,7 @@ export default function App() {
 
   const renderSplashScreen = () => (
     <View style={styles.splashScreen}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" backgroundColor="#004734" translucent={false} />
       <View style={styles.appBackgroundContainer}>
         <Image 
           source={require('./assets/bg.png')} 
@@ -997,7 +1039,7 @@ export default function App() {
 
   return (
     <View style={styles.appContainer}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" backgroundColor="#004734" translucent={false} />
       
       {/* Общий фон для всего приложения */}
       <View style={styles.appBackgroundContainer}>
@@ -1152,7 +1194,36 @@ export default function App() {
                 style={[styles.confirmModalButton, styles.confirmModalButtonDanger]}
                 onPress={confirmResetAll}
               >
-                <Text style={styles.confirmModalButtonDangerText}>Сбросить всё</Text>
+                <Text style={styles.confirmModalButtonDangerText}>Сбросить</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      {/* Модальное окно второго подтверждения сброса всех данных */}
+      <Modal
+        visible={showResetAllConfirm2}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowResetAllConfirm2(false)}
+      >
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <Text style={styles.confirmModalTitle}>Подтверждение</Text>
+            <Text style={styles.confirmModalText}>
+              Это удалит ВСЕ данные. Вы абсолютно уверены?
+            </Text>
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity
+                style={[styles.confirmModalButton, styles.confirmModalButtonCancel]}
+                onPress={() => setShowResetAllConfirm2(false)}
+              >
+                <Text style={styles.confirmModalButtonCancelText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmModalButton, styles.confirmModalButtonDanger]}
+                onPress={confirmResetAll2}
+              >
+                <Text style={styles.confirmModalButtonDangerText}>Сбросить</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1171,6 +1242,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
+    paddingTop: Platform.OS === 'web' ? 0 : 0,
     paddingBottom: isIPhone16Pro ? 110 : 100,
   },
   navigation: {

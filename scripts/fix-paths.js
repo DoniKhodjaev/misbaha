@@ -76,19 +76,36 @@ let htmlContent = fs.readFileSync(indexPath, 'utf8');
 // Проверяем, есть ли уже эти мета-теги
 if (!htmlContent.includes('apple-mobile-web-app-capable')) {
   // Находим закрывающий тег </head> и добавляем мета-теги перед ним
+  // Используем абсолютные пути для иконок
   const iosMetaTags = `
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Misbaha">
-    <link rel="apple-touch-icon" href="/misbaha/assets/ico.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/misbaha/assets/ico.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="/misbaha/assets/ico.png">`;
+    <link rel="apple-touch-icon" href="/misbaha/assets/assets/ico.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/misbaha/assets/assets/ico.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/misbaha/assets/assets/ico.png">`;
   
   htmlContent = htmlContent.replace('</head>', `${iosMetaTags}\n  </head>`);
   fs.writeFileSync(indexPath, htmlContent, 'utf8');
   console.log('✅ Added iOS PWA meta tags to index.html');
 } else {
-  console.log('ℹ️  iOS meta tags already present');
+  // Обновляем существующие мета-теги, если они есть
+  htmlContent = htmlContent.replace(
+    /<meta name="apple-mobile-web-app-status-bar-style" content="[^"]*">/g,
+    '<meta name="apple-mobile-web-app-status-bar-style" content="black">'
+  );
+  // Обновляем пути к иконкам
+  htmlContent = htmlContent.replace(
+    /<link rel="apple-touch-icon"[^>]*href="[^"]*ico\.png"[^>]*>/g,
+    ''
+  );
+  const iosIcons = `
+    <link rel="apple-touch-icon" href="/misbaha/assets/assets/ico.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/misbaha/assets/assets/ico.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/misbaha/assets/assets/ico.png">`;
+  htmlContent = htmlContent.replace('</head>', `${iosIcons}\n  </head>`);
+  fs.writeFileSync(indexPath, htmlContent, 'utf8');
+  console.log('✅ Updated iOS PWA meta tags in index.html');
 }
 
 // Исправляем пути во всех JS файлах
