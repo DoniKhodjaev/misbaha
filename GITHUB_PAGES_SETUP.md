@@ -16,7 +16,7 @@
 После создания репозитория GitHub покажет инструкции. Выполните команды (замените `YOUR_USERNAME` на ваш GitHub username):
 
 ```bash
-git remote add origin https://github.com/YOUR_USERNAME/misbaha.git
+git remote add origin https://github.com/DoniKhodjaev/misbaha.git
 git branch -M main
 git push -u origin main
 ```
