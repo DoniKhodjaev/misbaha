@@ -68,32 +68,4 @@ if (html !== originalHtml) {
   }
 }
 
-// Проверяем, были ли изменения
-if (html !== originalHtml) {
-  fs.writeFileSync(indexPath, html, 'utf8');
-  console.log('✅ Fixed paths in index.html for GitHub Pages');
-  
-  // Выводим информацию о замененных путях
-  const afterPaths = html.match(/\/misbaha\/[^"']+/g);
-  if (afterPaths) {
-    console.log('Paths after replacement:', afterPaths.slice(0, 5).join(', '));
-  }
-} else {
-  console.log('⚠️  No paths were changed in index.html');
-  console.log('Checking if paths already contain /misbaha...');
-  
-  // Проверяем наличие путей с /misbaha
-  if (html.includes('/misbaha/')) {
-    console.log('✅ Paths already contain /misbaha prefix');
-  } else {
-    console.log('❌ No /misbaha prefix found in paths');
-    const samplePaths = html.match(/(src|href)=["']\/[^"']+["']/g);
-    if (samplePaths) {
-      console.log('Sample paths found:', samplePaths.slice(0, 5).join(', '));
-    } else {
-      console.log('No paths found in HTML');
-    }
-  }
-}
-
 
