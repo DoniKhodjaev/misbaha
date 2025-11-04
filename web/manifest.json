@@ -3,7 +3,13 @@
   "name": "Misbaha - Счетчик Зикра",
   "icons": [
     {
-      "src": "/assets/ico.png",
+      "src": "/misbaha/assets/ico.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/misbaha/assets/ico.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

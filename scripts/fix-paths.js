@@ -69,6 +69,28 @@ if (htmlFixed) {
   console.log('✅ Fixed paths in index.html');
 }
 
+// Добавляем мета-теги для iOS PWA
+console.log('🍎 Adding iOS PWA meta tags...');
+let htmlContent = fs.readFileSync(indexPath, 'utf8');
+
+// Проверяем, есть ли уже эти мета-теги
+if (!htmlContent.includes('apple-mobile-web-app-capable')) {
+  // Находим закрывающий тег </head> и добавляем мета-теги перед ним
+  const iosMetaTags = `
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Misbaha">
+    <link rel="apple-touch-icon" href="/misbaha/assets/ico.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/misbaha/assets/ico.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/misbaha/assets/ico.png">`;
+  
+  htmlContent = htmlContent.replace('</head>', `${iosMetaTags}\n  </head>`);
+  fs.writeFileSync(indexPath, htmlContent, 'utf8');
+  console.log('✅ Added iOS PWA meta tags to index.html');
+} else {
+  console.log('ℹ️  iOS meta tags already present');
+}
+
 // Исправляем пути во всех JS файлах
 function fixJsFiles(dir) {
   const files = fs.readdirSync(dir);
