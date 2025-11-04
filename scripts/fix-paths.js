@@ -12,6 +12,14 @@ if (!fs.existsSync(indexPath)) {
 let html = fs.readFileSync(indexPath, 'utf8');
 const originalHtml = html;
 
+console.log('🔍 Analyzing index.html...');
+
+// Находим все пути перед заменой
+const beforePaths = html.match(/(src|href)=["']\/[^"']+["']/g);
+if (beforePaths) {
+  console.log('Paths found before replacement:', beforePaths.slice(0, 5).join(', '));
+}
+
 // Заменяем абсолютные пути на пути с префиксом /misbaha
 // Обрабатываем пути начинающиеся с /, но не с /misbaha
 html = html.replace(/(src|href)=["']\/(?!misbaha)([^"'?#]+)["']/g, (match, attr, filePath) => {
@@ -19,15 +27,9 @@ html = html.replace(/(src|href)=["']\/(?!misbaha)([^"'?#]+)["']/g, (match, attr,
   if (filePath.startsWith('http') || filePath.startsWith('//')) {
     return match;
   }
-  return `${attr}="/misbaha${filePath}"`;
-});
-
-// Также обрабатываем пути без кавычек (в HTML комментариях или других местах)
-html = html.replace(/(["'])\/(?!misbaha)([^"'?#]+)\1/g, (match, quote, filePath) => {
-  if (filePath.startsWith('http') || filePath.startsWith('//')) {
-    return match;
-  }
-  return `${quote}/misbaha${filePath}${quote}`;
+  const newPath = `${attr}="/misbaha${filePath}"`;
+  console.log(`  Replacing: ${match} -> ${newPath}`);
+  return newPath;
 });
 
 // Исправляем дублирование префикса
@@ -39,9 +41,9 @@ if (html !== originalHtml) {
   console.log('✅ Fixed paths in index.html for GitHub Pages');
   
   // Выводим информацию о замененных путях
-  const matches = html.match(/\/misbaha\/[^"']+/g);
-  if (matches) {
-    console.log('Found paths with /misbaha prefix:', matches.slice(0, 5).join(', '));
+  const afterPaths = html.match(/\/misbaha\/[^"']+/g);
+  if (afterPaths) {
+    console.log('Paths after replacement:', afterPaths.slice(0, 5).join(', '));
   }
 } else {
   console.log('⚠️  No paths were changed in index.html');
@@ -52,7 +54,12 @@ if (html !== originalHtml) {
     console.log('✅ Paths already contain /misbaha prefix');
   } else {
     console.log('❌ No /misbaha prefix found in paths');
-    console.log('Sample paths found:', html.match(/(src|href)=["']\/[^"']+["']/g)?.slice(0, 3));
+    const samplePaths = html.match(/(src|href)=["']\/[^"']+["']/g);
+    if (samplePaths) {
+      console.log('Sample paths found:', samplePaths.slice(0, 5).join(', '));
+    } else {
+      console.log('No paths found in HTML');
+    }
   }
 }
 
