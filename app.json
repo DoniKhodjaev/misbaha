@@ -33,13 +33,14 @@
       "name": "Misbaha",
       "shortName": "Misbaha",
       "lang": "ru",
-      "scope": "/",
+      "scope": "/misbaha/",
       "themeColor": "#004734",
       "backgroundColor": "#004734",
       "display": "standalone",
       "orientation": "portrait",
-      "startUrl": "/",
-      "manifest": "./web/manifest.json"
+      "startUrl": "/misbaha/",
+      "manifest": "./web/manifest.json",
+      "bundler": "metro"
     }
   }
 }

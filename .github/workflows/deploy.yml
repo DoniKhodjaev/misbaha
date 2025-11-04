@@ -37,6 +37,8 @@ jobs:
       
       - name: Build
         run: npm run build:web
+        env:
+          EXPO_PUBLIC_BASE_PATH: /misbaha
       
       - name: Create .nojekyll file
         run: echo "" > dist/.nojekyll

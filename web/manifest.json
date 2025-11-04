@@ -9,12 +9,12 @@
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/",
+  "start_url": "/misbaha/",
   "display": "standalone",
   "theme_color": "#004734",
   "background_color": "#004734",
   "orientation": "portrait",
-  "scope": "/",
+  "scope": "/misbaha/",
   "lang": "ru"
 }
 
