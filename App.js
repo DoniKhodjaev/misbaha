@@ -1244,7 +1244,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
     paddingTop: 0,
-    paddingBottom: isIPhone16Pro ? 110 : 100,
+    paddingBottom: Platform.OS === 'web' ? 0 : (isIPhone16Pro ? 110 : 100),
   },
   navigation: {
     height: 0,
@@ -1257,9 +1257,9 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   tabBarContainer: {
-    paddingBottom: isIPhone16Pro ? 20 : 10,
+    paddingBottom: Platform.OS === 'web' ? 0 : (isIPhone16Pro ? 20 : 10),
     paddingHorizontal: 12,
-    paddingTop: 10,
+    paddingTop: Platform.OS === 'web' ? 0 : 10,
   },
   tabBarBlur: {
     borderRadius: 28,
@@ -1357,9 +1357,9 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   tabBarContainer: {
-    paddingBottom: isIPhone16Pro ? 20 : 10,
+    paddingBottom: Platform.OS === 'web' ? 0 : (isIPhone16Pro ? 20 : 10),
     paddingHorizontal: 12,
-    paddingTop: 10,
+    paddingTop: Platform.OS === 'web' ? 0 : 10,
   },
   counterHeader: {
     width: '100%',
@@ -1769,7 +1769,7 @@ const styles = StyleSheet.create({
   },
   settingsScrollContent: {
     padding: 24,
-    paddingBottom: 100,
+    paddingBottom: Platform.OS === 'web' ? 20 : 100,
   },
   settingsSection: {
     marginBottom: 32,
