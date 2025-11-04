@@ -80,6 +80,8 @@ export default function App() {
   const [newZikrArabic, setNewZikrArabic] = useState('');
   const [goalInput, setGoalInput] = useState('');
   const [showGoalInput, setShowGoalInput] = useState(false);
+  const [showResetSessionConfirm, setShowResetSessionConfirm] = useState(false);
+  const [showResetAllConfirm, setShowResetAllConfirm] = useState(false);
   const isDataLoadedRef = React.useRef(false);
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
   const lastDateRef = React.useRef('');
@@ -499,14 +501,8 @@ export default function App() {
 
   const resetSession = () => {
     if (Platform.OS === 'web') {
-      // Для веба используем window.confirm
-      if (window.confirm('Вы уверены, что хотите сбросить текущую сессию?')) {
-        const resetCounts = {};
-        zikrTypes.forEach(type => {
-          resetCounts[type.id] = 0;
-        });
-        setCounts(resetCounts);
-      }
+      // Для веба показываем модальное окно подтверждения
+      setShowResetSessionConfirm(true);
     } else {
       Alert.alert(
         'Сброс сессии',
@@ -529,32 +525,19 @@ export default function App() {
     }
   };
 
+  const confirmResetSession = () => {
+    const resetCounts = {};
+    zikrTypes.forEach(type => {
+      resetCounts[type.id] = 0;
+    });
+    setCounts(resetCounts);
+    setShowResetSessionConfirm(false);
+  };
+
   const resetAll = async () => {
     if (Platform.OS === 'web') {
-      // Для веба используем window.confirm с двойным подтверждением
-      if (window.confirm('Вы уверены, что хотите сбросить все данные? Это действие нельзя отменить.')) {
-        if (window.confirm('Это удалит ВСЕ данные. Вы абсолютно уверены?')) {
-          const resetCounts = {};
-          zikrTypes.forEach(type => {
-            resetCounts[type.id] = 0;
-          });
-          setCounts(resetCounts);
-          setTodayCount(0);
-          resetTodayCounts();
-          setHistory([]);
-          try {
-            await AsyncStorage.clear();
-            setZikrTypes(DEFAULT_ZIKR_TYPES);
-            setZikrType(DEFAULT_ZIKR_TYPES[0].id);
-            setDailyGoal(100);
-            setVibrationEnabled(true);
-            alert('Все данные успешно сброшены');
-          } catch (error) {
-            console.error('Ошибка очистки данных:', error);
-            alert('Ошибка при сбросе данных');
-          }
-        }
-      }
+      // Для веба показываем модальное окно подтверждения
+      setShowResetAllConfirm(true);
     } else {
       Alert.alert(
         'Сброс всех данных',
@@ -586,6 +569,33 @@ export default function App() {
           },
         ]
       );
+    }
+  };
+
+  const confirmResetAll = async () => {
+    const resetCounts = {};
+    zikrTypes.forEach(type => {
+      resetCounts[type.id] = 0;
+    });
+    setCounts(resetCounts);
+    setTodayCount(0);
+    resetTodayCounts();
+    setHistory([]);
+    try {
+      await AsyncStorage.clear();
+      setZikrTypes(DEFAULT_ZIKR_TYPES);
+      setZikrType(DEFAULT_ZIKR_TYPES[0].id);
+      setDailyGoal(100);
+      setVibrationEnabled(true);
+      setShowResetAllConfirm(false);
+      if (Platform.OS === 'web') {
+        alert('Все данные успешно сброшены');
+      }
+    } catch (error) {
+      console.error('Ошибка очистки данных:', error);
+      if (Platform.OS === 'web') {
+        alert('Ошибка при сбросе данных');
+      }
     }
   };
 
@@ -1086,6 +1096,68 @@ export default function App() {
       {currentScreen === 'history' && renderHistoryScreen()}
       {currentScreen === 'stats' && renderStatsScreen()}
       {currentScreen === 'settings' && renderSettingsScreen()}
+
+      {/* Модальное окно подтверждения сброса сессии */}
+      <Modal
+        visible={showResetSessionConfirm}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowResetSessionConfirm(false)}
+      >
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <Text style={styles.confirmModalTitle}>Сброс сессии</Text>
+            <Text style={styles.confirmModalText}>
+              Вы уверены, что хотите сбросить текущую сессию?
+            </Text>
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity
+                style={[styles.confirmModalButton, styles.confirmModalButtonCancel]}
+                onPress={() => setShowResetSessionConfirm(false)}
+              >
+                <Text style={styles.confirmModalButtonCancelText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmModalButton, styles.confirmModalButtonConfirm]}
+                onPress={confirmResetSession}
+              >
+                <Text style={styles.confirmModalButtonConfirmText}>Сбросить</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Модальное окно подтверждения сброса всех данных */}
+      <Modal
+        visible={showResetAllConfirm}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowResetAllConfirm(false)}
+      >
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <Text style={styles.confirmModalTitle}>Сброс всех данных</Text>
+            <Text style={styles.confirmModalText}>
+              Вы уверены, что хотите сбросить все данные? Это действие нельзя отменить.
+            </Text>
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity
+                style={[styles.confirmModalButton, styles.confirmModalButtonCancel]}
+                onPress={() => setShowResetAllConfirm(false)}
+              >
+                <Text style={styles.confirmModalButtonCancelText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmModalButton, styles.confirmModalButtonDanger]}
+                onPress={confirmResetAll}
+              >
+                <Text style={styles.confirmModalButtonDangerText}>Сбросить всё</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       </SafeAreaView>
     </View>
   );
@@ -1803,6 +1875,72 @@ const styles = StyleSheet.create({
     borderColor: '#9a2a2a',
   },
   dangerButtonText: {
+    color: COLORS.lightText,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmModalContent: {
+    backgroundColor: '#052a24',
+    borderRadius: 20,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: COLORS.darkTeal,
+  },
+  confirmModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.lightText,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  confirmModalText: {
+    fontSize: 16,
+    color: COLORS.darkText,
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  confirmModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  confirmModalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  confirmModalButtonCancel: {
+    backgroundColor: '#052a24',
+    borderWidth: 1,
+    borderColor: COLORS.darkTeal,
+  },
+  confirmModalButtonConfirm: {
+    backgroundColor: COLORS.darkTeal,
+  },
+  confirmModalButtonDanger: {
+    backgroundColor: '#7a1a1a',
+  },
+  confirmModalButtonCancelText: {
+    color: COLORS.lightText,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmModalButtonConfirmText: {
+    color: COLORS.lightText,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmModalButtonDangerText: {
     color: COLORS.lightText,
     fontSize: 16,
     fontWeight: '600',
