@@ -21,19 +21,23 @@ if (beforePaths) {
 }
 
 // Заменяем абсолютные пути на пути с префиксом /misbaha
-// Обрабатываем пути начинающиеся с /, но не с /misbaha
-html = html.replace(/(src|href)=["']\/(?!misbaha)([^"'?#]+)["']/g, (match, attr, filePath) => {
+// ВАЖНО: добавляем слеш после /misbaha
+html = html.replace(/(src|href)=["']\/(?!misbaha\/)([^"'?#]+)["']/g, (match, attr, filePath) => {
   // Пропускаем пути, которые уже правильные или являются внешними ссылками
   if (filePath.startsWith('http') || filePath.startsWith('//')) {
     return match;
   }
-  const newPath = `${attr}="/misbaha${filePath}"`;
+  // Убеждаемся, что путь начинается с /, а не с префикса misbaha
+  const newPath = `${attr}="/misbaha/${filePath}"`;
   console.log(`  Replacing: ${match} -> ${newPath}`);
   return newPath;
 });
 
 // Исправляем дублирование префикса
 html = html.replace(/\/misbaha\/misbaha\//g, '/misbaha/');
+
+// Исправляем неправильные пути типа misbaha_expo -> misbaha/_expo
+html = html.replace(/\/misbaha([^\/])/g, '/misbaha/$1');
 
 // Проверяем, были ли изменения
 if (html !== originalHtml) {
