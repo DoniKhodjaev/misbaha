@@ -17,12 +17,13 @@ function fixPathsInFile(filePath) {
   const originalContent = content;
   
   // ВАЖНО: Сначала исправляем двойные пути типа /assets/assets/ -> /misbaha/assets/assets/
+  // Делаем это ДО общей замены /assets/
   content = content.replace(/\/assets\/assets\//g, '/misbaha/assets/assets/');
   
-  // Затем заменяем прямые пути без кавычек
-  content = content.replace(/\/assets\//g, '/misbaha/assets/');
-  content = content.replace(/\/_expo\//g, '/misbaha/_expo/');
-  content = content.replace(/\/favicon\.ico/g, '/misbaha/favicon.ico');
+  // Затем заменяем прямые пути без кавычек (но не те, что уже начинаются с /misbaha)
+  content = content.replace(/\/(?!misbaha\/)assets\//g, '/misbaha/assets/');
+  content = content.replace(/\/(?!misbaha\/)_expo\//g, '/misbaha/_expo/');
+  content = content.replace(/\/(?!misbaha\/)favicon\.ico/g, '/misbaha/favicon.ico');
   
   // Затем заменяем пути в кавычках
   // Обрабатываем пути в одинарных, двойных кавычках и обратных кавычках
