@@ -1199,6 +1199,8 @@ export default function App() {
             </View>
           </View>
         </View>
+      </Modal>
+
       {/* Модальное окно второго подтверждения сброса всех данных */}
       <Modal
         visible={showResetAllConfirm2}
