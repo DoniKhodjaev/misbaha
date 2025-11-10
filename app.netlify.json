@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Misbaha",
+    "slug": "misbaha",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/ico.png",
+    "splash": {
+      "image": "./assets/ico.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#004734"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.misbaha.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/ico.png",
+        "backgroundColor": "#004734"
+      },
+      "package": "com.misbaha.app",
+      "versionCode": 1,
+      "permissions": []
+    },
+    "web": {
+      "favicon": "./assets/ico.png",
+      "name": "Misbaha",
+      "shortName": "Misbaha",
+      "lang": "ru",
+      "scope": "/",
+      "themeColor": "#004734",
+      "backgroundColor": "#004734",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "manifest": "./web/manifest.json",
+      "bundler": "metro",
+      "baseUrl": "",
+      "meta": {
+        "apple-mobile-web-app-capable": "yes",
+        "apple-mobile-web-app-status-bar-style": "black-translucent",
+        "apple-mobile-web-app-title": "Misbaha",
+        "viewport": "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+      }
+    }
+  }
+}
+

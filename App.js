@@ -21,6 +21,8 @@ import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Path, Circle, Line, Rect } from 'react-native-svg';
+import * as Notifications from 'expo-notifications';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const isIPhone16Pro = SCREEN_HEIGHT >= 932 && SCREEN_WIDTH >= 430;
@@ -63,6 +65,452 @@ const ZIKR_ARABIC_MAP = {
   'ла илаха илла ллах': 'لَا إِلَٰهَ إِلَّا اللَّٰهُ',
 };
 
+// Достижения
+const ACHIEVEMENTS = [
+  { id: 'first_100', name: 'Первая сотня', description: 'Совершите 100 зикров', threshold: 100, icon: '🏆' },
+  { id: 'first_1000', name: 'Тысяча', description: 'Совершите 1000 зикров', threshold: 1000, icon: '⭐' },
+  { id: 'first_10000', name: 'Десять тысяч', description: 'Совершите 10000 зикров', threshold: 10000, icon: '👑' },
+  { id: 'week_streak', name: 'Неделя подряд', description: '7 дней подряд', threshold: 7, icon: '🔥' },
+  { id: 'month_streak', name: 'Месяц подряд', description: '30 дней подряд', threshold: 30, icon: '💎' },
+  { id: 'goal_achiever', name: 'Достигатель целей', description: 'Достигните цели 10 раз', threshold: 10, icon: '🎯' },
+];
+
+// Темы оформления
+const THEMES = {
+  default: {
+    name: 'По умолчанию',
+    darkTeal: '#0C7460',
+    orange: '#FAA51B',
+    veryDarkGreen: '#004734',
+    lightText: '#E8E8E8',
+    darkText: '#888888',
+  },
+  ocean: {
+    name: 'Океан',
+    darkTeal: '#0D7377',
+    orange: '#FFB84D',
+    veryDarkGreen: '#003D52',
+    lightText: '#E0F2F1',
+    darkText: '#7FB3B3',
+  },
+  sunset: {
+    name: 'Закат',
+    darkTeal: '#B8860B',
+    orange: '#FF6B35',
+    veryDarkGreen: '#2C1810',
+    lightText: '#FFF8E1',
+    darkText: '#A68B5B',
+  },
+  forest: {
+    name: 'Лес',
+    darkTeal: '#2D5016',
+    orange: '#FFA726',
+    veryDarkGreen: '#1B3D0F',
+    lightText: '#E8F5E9',
+    darkText: '#81C784',
+  },
+};
+
+// Языки
+const LANGUAGES = {
+  ru: {
+    name: 'Русский',
+    counter: 'Счетчик Зикра',
+    today: 'Сегодня',
+    yesterday: 'Вчера',
+    history: 'История',
+    stats: 'Статистика',
+    settings: 'Настройки',
+    currentSession: 'Текущая сессия',
+    selectZikr: 'Нажмите для выбора',
+    selectZikrTitle: 'Выберите зикр',
+    addZikr: 'Добавить зикр',
+    addNewZikr: '+ Добавить новый зикр',
+    resetSession: 'Сбросить сессию',
+    resetAll: 'Сбросить все данные',
+    achievements: 'Достижения',
+    viewAchievements: 'Просмотреть достижения',
+    export: 'Экспорт данных',
+    import: 'Импорт данных',
+    theme: 'Тема оформления',
+    language: 'Язык',
+    sounds: 'Звуки',
+    notifications: 'Уведомления',
+    vibration: 'Вибрация',
+    vibrationDesc: 'Вибрация при каждом зикре',
+    reminders: 'Напоминания',
+    remindersDesc: 'Уведомления о зикре',
+    dailyReminderTime: 'Время ежедневного напоминания',
+    dailyReminderTimeDesc: 'Время для ежедневного уведомления',
+    reminderInterval: 'Интервал напоминаний',
+    reminderIntervalDesc: 'Каждые N часов (0 = отключено)',
+    goals: 'Цели',
+    dailyGoal: 'Цель на день',
+    dailyGoalDesc: 'Количество зикр для достижения цели',
+    soundsDesc: 'Звуковые эффекты при зикре',
+    data: 'Данные',
+    sessionTimer: 'Таймер сессии',
+    speed: 'Скорость',
+    perMinute: 'в минуту',
+    totalAllTime: 'Всего за все время',
+    byTimeOfDay: 'По времени суток',
+    byType: 'По типам зикра',
+    charts: 'Графики',
+    week: 'Неделя',
+    month: 'Месяц',
+    calendar: 'Календарь',
+    zikrName: 'Название зикра *',
+    zikrNameHint: 'Введите название на латинице',
+    arabicText: 'Арабский текст',
+    arabicTextHint: 'Опционально. Введите арабский текст',
+    cancel: 'Отмена',
+    add: 'Добавить',
+    save: 'Сохранить',
+    delete: 'Удалить',
+    reset: 'Сбросить',
+    historyEmpty: 'История пуста',
+    historyEmptyDesc: 'Начните совершать зикр, чтобы увидеть статистику',
+    zikr: 'зикр',
+    averagePerDay: 'Среднее в день',
+    bestDay: 'Лучший день',
+    totalDays: 'Всего дней',
+    daysStreak: 'Дней подряд',
+    notEnoughData: 'Недостаточно данных',
+    needMinHistory: 'Нужна минимум 1 запись в истории',
+    notificationTimeTitle: 'Время уведомления',
+    notificationTimeDesc: 'Выберите время для ежедневного напоминания (формат: HH:MM)',
+    reminderIntervalTitle: 'Интервал напоминаний',
+    reminderIntervalDesc: 'Выберите интервал между напоминаниями (в часах). 0 = отключено',
+    disabled: 'Отключено',
+    hours: 'ч',
+    resetSessionTitle: 'Сброс сессии',
+    resetSessionConfirm: 'Вы уверены, что хотите сбросить текущую сессию?',
+    resetAllTitle: 'Сброс всех данных',
+    resetAllConfirm: 'Вы уверены, что хотите сбросить все данные? Это действие нельзя отменить.',
+    confirmation: 'Подтверждение',
+    resetAllConfirm2: 'Это удалит ВСЕ данные. Вы абсолютно уверены?',
+    importTitle: 'Импорт данных',
+    importDesc: 'Вставьте JSON данные для импорта',
+    importPlaceholder: 'Вставьте JSON данные...',
+    importError: 'Введите данные для импорта',
+    exportSuccess: 'Данные экспортированы',
+    exportError: 'Не удалось экспортировать данные',
+    importSuccess: 'Данные импортированы',
+    importErrorFormat: 'Неверный формат данных',
+    deleteZikr: 'Удалить зикр',
+    deleteZikrConfirm: 'Вы уверены, что хотите удалить этот вид зикра?',
+    enterZikrName: 'Введите название зикра',
+    timeFormatError: 'Введите время в формате HH:MM (например, 09:00)',
+    goalError: 'Введите число от 1 до 10000',
+    permission: 'Разрешение',
+    notificationPermission: 'Для уведомлений необходимо разрешение. Пожалуйста, включите уведомления в настройках устройства.',
+    notificationPermissionApp: 'Для уведомлений необходимо разрешение. Пожалуйста, включите уведомления в настройках приложения.',
+    goalAchieved: '🎉 Поздравляем!',
+    goalAchievedText: 'Вы достигли цели на сегодня: {goal} зикр!',
+    allDataReset: 'Все данные успешно сброшены',
+    resetError: 'Ошибка при сбросе данных',
+    error: 'Ошибка',
+    success: 'Успех',
+  },
+  en: {
+    name: 'English',
+    counter: 'Zikr Counter',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    history: 'History',
+    stats: 'Statistics',
+    settings: 'Settings',
+    currentSession: 'Current Session',
+    selectZikr: 'Tap to select',
+    selectZikrTitle: 'Select Zikr',
+    addZikr: 'Add Zikr',
+    addNewZikr: '+ Add New Zikr',
+    resetSession: 'Reset Session',
+    resetAll: 'Reset All Data',
+    achievements: 'Achievements',
+    viewAchievements: 'View Achievements',
+    export: 'Export Data',
+    import: 'Import Data',
+    theme: 'Theme',
+    language: 'Language',
+    sounds: 'Sounds',
+    notifications: 'Notifications',
+    vibration: 'Vibration',
+    vibrationDesc: 'Vibration on each zikr',
+    reminders: 'Reminders',
+    remindersDesc: 'Zikr notifications',
+    dailyReminderTime: 'Daily Reminder Time',
+    dailyReminderTimeDesc: 'Time for daily notification',
+    reminderInterval: 'Reminder Interval',
+    reminderIntervalDesc: 'Every N hours (0 = disabled)',
+    goals: 'Goals',
+    dailyGoal: 'Daily Goal',
+    dailyGoalDesc: 'Number of zikr to achieve goal',
+    soundsDesc: 'Sound effects on zikr',
+    data: 'Data',
+    sessionTimer: 'Session Timer',
+    speed: 'Speed',
+    perMinute: 'per minute',
+    totalAllTime: 'Total All Time',
+    byTimeOfDay: 'By Time of Day',
+    byType: 'By Type',
+    charts: 'Charts',
+    week: 'Week',
+    month: 'Month',
+    calendar: 'Calendar',
+    zikrName: 'Zikr Name *',
+    zikrNameHint: 'Enter name in Latin',
+    arabicText: 'Arabic Text',
+    arabicTextHint: 'Optional. Enter Arabic text',
+    cancel: 'Cancel',
+    add: 'Add',
+    save: 'Save',
+    delete: 'Delete',
+    reset: 'Reset',
+    historyEmpty: 'History is empty',
+    historyEmptyDesc: 'Start performing zikr to see statistics',
+    zikr: 'zikr',
+    averagePerDay: 'Average per Day',
+    bestDay: 'Best Day',
+    totalDays: 'Total Days',
+    daysStreak: 'Days Streak',
+    notEnoughData: 'Not enough data',
+    needMinHistory: 'Need at least 1 entry in history',
+    notificationTimeTitle: 'Notification Time',
+    notificationTimeDesc: 'Select time for daily reminder (format: HH:MM)',
+    reminderIntervalTitle: 'Reminder Interval',
+    reminderIntervalDesc: 'Select interval between reminders (in hours). 0 = disabled',
+    disabled: 'Disabled',
+    hours: 'h',
+    resetSessionTitle: 'Reset Session',
+    resetSessionConfirm: 'Are you sure you want to reset the current session?',
+    resetAllTitle: 'Reset All Data',
+    resetAllConfirm: 'Are you sure you want to reset all data? This action cannot be undone.',
+    confirmation: 'Confirmation',
+    resetAllConfirm2: 'This will delete ALL data. Are you absolutely sure?',
+    importTitle: 'Import Data',
+    importDesc: 'Paste JSON data to import',
+    importPlaceholder: 'Paste JSON data...',
+    importError: 'Enter data to import',
+    exportSuccess: 'Data exported successfully',
+    exportError: 'Failed to export data',
+    importSuccess: 'Data imported successfully',
+    importErrorFormat: 'Invalid data format',
+    deleteZikr: 'Delete Zikr',
+    deleteZikrConfirm: 'Are you sure you want to delete this zikr type?',
+    enterZikrName: 'Enter zikr name',
+    timeFormatError: 'Enter time in HH:MM format (e.g., 09:00)',
+    goalError: 'Enter a number from 1 to 10000',
+    permission: 'Permission',
+    notificationPermission: 'Permission is required for notifications. Please enable notifications in device settings.',
+    notificationPermissionApp: 'Permission is required for notifications. Please enable notifications in app settings.',
+    goalAchieved: '🎉 Congratulations!',
+    goalAchievedText: 'You have reached today\'s goal: {goal} zikr!',
+    allDataReset: 'All data reset successfully',
+    resetError: 'Error resetting data',
+    error: 'Error',
+    success: 'Success',
+  },
+  ar: {
+    name: 'العربية',
+    counter: 'عداد الذكر',
+    today: 'اليوم',
+    yesterday: 'أمس',
+    history: 'التاريخ',
+    stats: 'الإحصائيات',
+    settings: 'الإعدادات',
+    currentSession: 'الجلسة الحالية',
+    selectZikr: 'اضغط للاختيار',
+    selectZikrTitle: 'اختر الذكر',
+    addZikr: 'إضافة ذكر',
+    addNewZikr: '+ إضافة ذكر جديد',
+    resetSession: 'إعادة تعيين الجلسة',
+    resetAll: 'إعادة تعيين جميع البيانات',
+    achievements: 'الإنجازات',
+    viewAchievements: 'عرض الإنجازات',
+    export: 'تصدير البيانات',
+    import: 'استيراد البيانات',
+    theme: 'المظهر',
+    language: 'اللغة',
+    sounds: 'الأصوات',
+    notifications: 'الإشعارات',
+    vibration: 'الاهتزاز',
+    vibrationDesc: 'الاهتزاز عند كل ذكر',
+    reminders: 'التذكيرات',
+    remindersDesc: 'إشعارات الذكر',
+    dailyReminderTime: 'وقت التذكير اليومي',
+    dailyReminderTimeDesc: 'وقت الإشعار اليومي',
+    reminderInterval: 'فترة التذكير',
+    reminderIntervalDesc: 'كل N ساعة (0 = معطل)',
+    goals: 'الأهداف',
+    dailyGoal: 'الهدف اليومي',
+    dailyGoalDesc: 'عدد الأذكار لتحقيق الهدف',
+    soundsDesc: 'تأثيرات صوتية عند الذكر',
+    data: 'البيانات',
+    sessionTimer: 'مؤقت الجلسة',
+    speed: 'السرعة',
+    perMinute: 'في الدقيقة',
+    totalAllTime: 'المجموع الكلي',
+    byTimeOfDay: 'حسب وقت اليوم',
+    byType: 'حسب النوع',
+    charts: 'الرسوم البيانية',
+    week: 'الأسبوع',
+    month: 'الشهر',
+    calendar: 'التقويم',
+    zikrName: 'اسم الذكر *',
+    zikrNameHint: 'أدخل الاسم باللاتينية',
+    arabicText: 'النص العربي',
+    arabicTextHint: 'اختياري. أدخل النص العربي',
+    cancel: 'إلغاء',
+    add: 'إضافة',
+    save: 'حفظ',
+    delete: 'حذف',
+    reset: 'إعادة تعيين',
+    historyEmpty: 'التاريخ فارغ',
+    historyEmptyDesc: 'ابدأ في أداء الذكر لرؤية الإحصائيات',
+    zikr: 'ذكر',
+    averagePerDay: 'المتوسط في اليوم',
+    bestDay: 'أفضل يوم',
+    totalDays: 'إجمالي الأيام',
+    daysStreak: 'أيام متتالية',
+    notEnoughData: 'بيانات غير كافية',
+    needMinHistory: 'يحتاج إلى إدخال واحد على الأقل في التاريخ',
+    notificationTimeTitle: 'وقت الإشعار',
+    notificationTimeDesc: 'اختر وقت التذكير اليومي (التنسيق: HH:MM)',
+    reminderIntervalTitle: 'فترة التذكير',
+    reminderIntervalDesc: 'اختر الفترة بين التذكيرات (بالساعات). 0 = معطل',
+    disabled: 'معطل',
+    hours: 'س',
+    resetSessionTitle: 'إعادة تعيين الجلسة',
+    resetSessionConfirm: 'هل أنت متأكد أنك تريد إعادة تعيين الجلسة الحالية؟',
+    resetAllTitle: 'إعادة تعيين جميع البيانات',
+    resetAllConfirm: 'هل أنت متأكد أنك تريد إعادة تعيين جميع البيانات؟ لا يمكن التراجع عن هذا الإجراء.',
+    confirmation: 'تأكيد',
+    resetAllConfirm2: 'سيؤدي هذا إلى حذف جميع البيانات. هل أنت متأكد تمامًا؟',
+    importTitle: 'استيراد البيانات',
+    importDesc: 'الصق بيانات JSON للاستيراد',
+    importPlaceholder: 'الصق بيانات JSON...',
+    importError: 'أدخل البيانات للاستيراد',
+    exportSuccess: 'تم تصدير البيانات بنجاح',
+    exportError: 'فشل تصدير البيانات',
+    importSuccess: 'تم استيراد البيانات بنجاح',
+    importErrorFormat: 'تنسيق بيانات غير صالح',
+    deleteZikr: 'حذف الذكر',
+    deleteZikrConfirm: 'هل أنت متأكد أنك تريد حذف نوع الذكر هذا؟',
+    enterZikrName: 'أدخل اسم الذكر',
+    timeFormatError: 'أدخل الوقت بتنسيق HH:MM (مثل 09:00)',
+    goalError: 'أدخل رقمًا من 1 إلى 10000',
+    permission: 'الإذن',
+    notificationPermission: 'الإذن مطلوب للإشعارات. يرجى تمكين الإشعارات في إعدادات الجهاز.',
+    notificationPermissionApp: 'الإذن مطلوب للإشعارات. يرجى تمكين الإشعارات في إعدادات التطبيق.',
+    goalAchieved: '🎉 تهانينا!',
+    goalAchievedText: 'لقد حققت الهدف اليوم: {goal} ذكر!',
+    allDataReset: 'تم إعادة تعيين جميع البيانات بنجاح',
+    resetError: 'خطأ في إعادة تعيين البيانات',
+    error: 'خطأ',
+    success: 'نجاح',
+  },
+  uz: {
+    name: "O'zbek",
+    counter: 'Zikr Hisoblagichi',
+    today: 'Bugun',
+    yesterday: 'Kecha',
+    history: 'Tarix',
+    stats: 'Statistika',
+    settings: 'Sozlamalar',
+    currentSession: 'Joriy Sessiya',
+    selectZikr: 'Tanlash uchun bosing',
+    selectZikrTitle: 'Zikrni tanlang',
+    addZikr: 'Zikr qo\'shish',
+    addNewZikr: '+ Yangi zikr qo\'shish',
+    resetSession: 'Sessiyani qayta tiklash',
+    resetAll: 'Barcha ma\'lumotlarni qayta tiklash',
+    achievements: 'Yutuqlar',
+    viewAchievements: 'Yutuqlarni ko\'rish',
+    export: 'Ma\'lumotlarni eksport qilish',
+    import: 'Ma\'lumotlarni import qilish',
+    theme: 'Mavzu',
+    language: 'Til',
+    sounds: 'Ovozlar',
+    notifications: 'Bildirishnomalar',
+    vibration: 'Titrash',
+    vibrationDesc: 'Har bir zikrda titrash',
+    reminders: 'Eslatmalar',
+    remindersDesc: 'Zikr bildirishnomalari',
+    dailyReminderTime: 'Kunlik eslatma vaqti',
+    dailyReminderTimeDesc: 'Kunlik bildirishnoma vaqti',
+    reminderInterval: 'Eslatma intervali',
+    reminderIntervalDesc: 'Har N soatda (0 = o\'chirilgan)',
+    goals: 'Maqsadlar',
+    dailyGoal: 'Kunlik maqsad',
+    dailyGoalDesc: 'Maqsadga erishish uchun zikr soni',
+    soundsDesc: 'Zikrda ovoz effektlari',
+    data: 'Ma\'lumotlar',
+    sessionTimer: 'Sessiya Taymeri',
+    speed: 'Tezlik',
+    perMinute: 'daqiqada',
+    totalAllTime: 'Jami vaqt',
+    byTimeOfDay: 'Kun vaqti bo\'yicha',
+    byType: 'Tur bo\'yicha',
+    charts: 'Grafiklar',
+    week: 'Hafta',
+    month: 'Oy',
+    calendar: 'Taqvim',
+    zikrName: 'Zikr nomi *',
+    zikrNameHint: 'Nomni lotincha kiriting',
+    arabicText: 'Arabcha matn',
+    arabicTextHint: 'Ixtiyoriy. Arabcha matn kiriting',
+    cancel: 'Bekor qilish',
+    add: 'Qo\'shish',
+    save: 'Saqlash',
+    delete: 'O\'chirish',
+    reset: 'Qayta tiklash',
+    historyEmpty: 'Tarix bo\'sh',
+    historyEmptyDesc: 'Statistikani ko\'rish uchun zikr qilishni boshlang',
+    zikr: 'zikr',
+    averagePerDay: 'Kuniga o\'rtacha',
+    bestDay: 'Eng yaxshi kun',
+    totalDays: 'Jami kunlar',
+    daysStreak: 'Ketma-ket kunlar',
+    notEnoughData: 'Ma\'lumotlar yetarli emas',
+    needMinHistory: 'Tarixda kamida 1 yozuv kerak',
+    notificationTimeTitle: 'Bildirishnoma vaqti',
+    notificationTimeDesc: 'Kunlik eslatma vaqtini tanlang (format: HH:MM)',
+    reminderIntervalTitle: 'Eslatma intervali',
+    reminderIntervalDesc: 'Eslatmalar orasidagi intervalni tanlang (soatlarda). 0 = o\'chirilgan',
+    disabled: 'O\'chirilgan',
+    hours: 'soat',
+    resetSessionTitle: 'Sessiyani qayta tiklash',
+    resetSessionConfirm: 'Joriy sessiyani qayta tiklashni xohlaysizmi?',
+    resetAllTitle: 'Barcha ma\'lumotlarni qayta tiklash',
+    resetAllConfirm: 'Barcha ma\'lumotlarni qayta tiklashni xohlaysizmi? Bu amalni bekor qilib bo\'lmaydi.',
+    confirmation: 'Tasdiqlash',
+    resetAllConfirm2: 'Bu BARCHA ma\'lumotlarni o\'chiradi. Siz mutlaqo ishonchingiz komilmi?',
+    importTitle: 'Ma\'lumotlarni import qilish',
+    importDesc: 'Import qilish uchun JSON ma\'lumotlarini yopishtiring',
+    importPlaceholder: 'JSON ma\'lumotlarini yopishtiring...',
+    importError: 'Import qilish uchun ma\'lumotlarni kiriting',
+    exportSuccess: 'Ma\'lumotlar muvaffaqiyatli eksport qilindi',
+    exportError: 'Ma\'lumotlarni eksport qilishda xatolik',
+    importSuccess: 'Ma\'lumotlar muvaffaqiyatli import qilindi',
+    importErrorFormat: 'Noto\'g\'ri ma\'lumot formati',
+    deleteZikr: 'Zikrni o\'chirish',
+    deleteZikrConfirm: 'Bu zikr turini o\'chirishni xohlaysizmi?',
+    enterZikrName: 'Zikr nomini kiriting',
+    timeFormatError: 'Vaqtni HH:MM formatida kiriting (masalan, 09:00)',
+    goalError: '1 dan 10000 gacha raqam kiriting',
+    permission: 'Ruxsat',
+    notificationPermission: 'Bildirishnomalar uchun ruxsat kerak. Iltimos, qurilma sozlamalarida bildirishnomalarni yoqing.',
+    notificationPermissionApp: 'Bildirishnomalar uchun ruxsat kerak. Iltimos, ilova sozlamalarida bildirishnomalarni yoqing.',
+    goalAchieved: '🎉 Tabriklaymiz!',
+    goalAchievedText: 'Siz bugungi maqsadga erishdingiz: {goal} zikr!',
+    allDataReset: 'Barcha ma\'lumotlar muvaffaqiyatli qayta tiklandi',
+    resetError: 'Ma\'lumotlarni qayta tiklashda xatolik',
+    error: 'Xatolik',
+    success: 'Muvaffaqiyat',
+  },
+};
+
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentScreen, setCurrentScreen] = useState('counter');
@@ -83,11 +531,274 @@ export default function App() {
   const [showResetSessionConfirm, setShowResetSessionConfirm] = useState(false);
   const [showResetAllConfirm, setShowResetAllConfirm] = useState(false);
   const [showResetAllConfirm2, setShowResetAllConfirm2] = useState(false);
+  // Новые состояния для расширенных функций
+  const [achievements, setAchievements] = useState([]);
+  const [currentTheme, setCurrentTheme] = useState('default');
+  const [currentLanguage, setCurrentLanguage] = useState('ru');
+  const [soundsEnabled, setSoundsEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationTime, setNotificationTime] = useState('09:00'); // Время уведомления
+  const [notificationInterval, setNotificationInterval] = useState(3); // Интервал в часах
+  const [showNotificationTimePicker, setShowNotificationTimePicker] = useState(false);
+  const [showNotificationIntervalPicker, setShowNotificationIntervalPicker] = useState(false);
+  const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [sessionDuration, setSessionDuration] = useState(0);
+  const [chartPeriod, setChartPeriod] = useState('week'); // 'week' or 'month'
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importDataText, setImportDataText] = useState('');
+  const [totalAllTime, setTotalAllTime] = useState(0);
+  const [goalAchievedCount, setGoalAchievedCount] = useState(0);
+  const [streakDays, setStreakDays] = useState(0);
   const isDataLoadedRef = React.useRef(false);
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
   const lastDateRef = React.useRef('');
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const audioSoundRef = React.useRef(null);
+  const sessionTimerRef = React.useRef(null);
+  const COLORS_THEME = THEMES[currentTheme] || THEMES.default;
+  
+  // Telegram интеграция
+  const [telegramUser, setTelegramUser] = useState(null);
+  const telegramWebAppRef = React.useRef(null);
+  const lastSyncRef = React.useRef(null);
+
+  // Проверка, запущено ли в Telegram
+  const isTelegram = () => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+    return !!window.Telegram?.WebApp;
+  };
+
+  // Инициализация Telegram Web App
+  const initTelegramWebApp = () => {
+    if (!isTelegram()) return null;
+    
+    const tg = window.Telegram.WebApp;
+    telegramWebAppRef.current = tg;
+    
+    // Готовим приложение к показу
+    tg.ready();
+    
+    // Разворачиваем на весь экран
+    tg.expand();
+    
+    // Устанавливаем цвета темы
+    tg.setHeaderColor('#004734');
+    tg.setBackgroundColor('#004734');
+    
+    // Включаем закрытие по свайпу вниз
+    tg.enableClosingConfirmation();
+    
+    // Получаем данные пользователя
+    const user = tg.initDataUnsafe?.user;
+    if (user) {
+      setTelegramUser(user);
+      console.log('Telegram user:', user);
+      
+      // Автоматический выбор языка на основе языка Telegram
+      if (user.language_code) {
+        const langMap = {
+          'ru': 'ru',
+          'en': 'en',
+          'ar': 'ar',
+          'uz': 'uz',
+          'uk': 'ru', // Украинский -> русский
+          'kk': 'ru', // Казахский -> русский
+        };
+        const detectedLang = langMap[user.language_code] || 'ru';
+        if (detectedLang !== currentLanguage) {
+          setCurrentLanguage(detectedLang);
+          console.log(`Язык автоматически выбран: ${detectedLang} (из ${user.language_code})`);
+        }
+      }
+    }
+    
+    // Обработчик события закрытия Mini App - отправляем данные
+    tg.onEvent('viewportChanged', (event) => {
+      // При изменении viewport (например, при закрытии) отправляем данные
+      if (event.isStateStable) {
+        syncDataWithBot();
+      }
+    });
+    
+    // Обработчик закрытия приложения
+    tg.onEvent('close', () => {
+      // При закрытии отправляем финальные данные
+      syncDataWithBot();
+    });
+    
+    // Периодическая синхронизация каждые 30 секунд
+    const syncInterval = setInterval(() => {
+      if (isTelegram() && telegramWebAppRef.current) {
+        syncDataWithBot();
+      }
+    }, 30000);
+    
+    // Сохраняем интервал для очистки
+    if (typeof window !== 'undefined') {
+      window._telegramSyncInterval = syncInterval;
+    }
+    
+    return tg;
+  };
+
+  // Улучшенная вибрация с поддержкой Telegram Haptic Feedback
+  const vibrateWithTelegram = (pattern) => {
+    if (!vibrationEnabled) return;
+    
+    // Если запущено в Telegram, используем Haptic Feedback
+    if (isTelegram() && telegramWebAppRef.current?.HapticFeedback) {
+      const haptic = telegramWebAppRef.current.HapticFeedback;
+      
+      if (typeof pattern === 'number') {
+        // Простая вибрация
+        haptic.impactOccurred('light');
+      } else if (Array.isArray(pattern)) {
+        // Сложная вибрация - используем medium для массива
+        haptic.impactOccurred('medium');
+        // Для специальных случаев (каждые 33 зикра)
+        if (pattern.length > 2) {
+          setTimeout(() => haptic.notificationOccurred('success'), 100);
+        }
+      }
+      return;
+    }
+    
+    // Fallback на обычную вибрацию
+    if (Platform.OS === 'web') {
+      try {
+        if ('vibrate' in navigator) {
+          if (typeof pattern === 'number') {
+            navigator.vibrate(pattern);
+          } else if (Array.isArray(pattern)) {
+            navigator.vibrate(pattern);
+          }
+        }
+      } catch (error) {
+        console.log('Vibration not supported:', error);
+      }
+    } else {
+      try {
+        if (typeof pattern === 'number') {
+          Vibration.vibrate(pattern);
+        } else if (Array.isArray(pattern)) {
+          Vibration.vibrate(pattern);
+        }
+      } catch (error) {
+        console.log('Vibration error:', error);
+      }
+    }
+  };
+
+  // Синхронизация данных с ботом
+  const syncDataWithBot = useCallback(() => {
+    if (!isTelegram() || !telegramWebAppRef.current) return;
+    
+    const tg = telegramWebAppRef.current;
+    
+    // Подготавливаем данные для синхронизации
+    const syncData = {
+      type: 'sync',
+      todayCount,
+      totalAllTime,
+      streakDays,
+      dailyGoal,
+      history: history.slice(-30), // Последние 30 дней
+      achievements,
+      counts,
+      todayCounts,
+      lastSync: new Date().toISOString(),
+    };
+    
+    // Сохраняем данные в localStorage для надежности
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('misbaha_sync_data', JSON.stringify(syncData));
+        localStorage.setItem('misbaha_last_sync', new Date().toISOString());
+      }
+    } catch (e) {
+      console.log('Не удалось сохранить в localStorage:', e);
+    }
+    
+    // Отправляем данные через sendData
+    try {
+      if (tg.sendData) {
+        tg.sendData(JSON.stringify(syncData));
+        lastSyncRef.current = new Date();
+        console.log('✅ Данные отправлены в бот:', {
+          todayCount,
+          totalAllTime,
+          streakDays
+        });
+      } else {
+        console.warn('⚠️ sendData недоступен');
+      }
+    } catch (error) {
+      console.error('Ошибка синхронизации данных:', error);
+    }
+  }, [todayCount, totalAllTime, streakDays, dailyGoal, history, achievements, counts, todayCounts]);
+
+  // Отправка статистики в бот
+  const sendStatsToBot = useCallback(() => {
+    if (!isTelegram() || !telegramWebAppRef.current) return;
+    
+    const tg = telegramWebAppRef.current;
+    const statsData = {
+      type: 'stats',
+      todayCount,
+      totalAllTime,
+      streakDays,
+      dailyGoal,
+      progress: dailyGoal > 0 ? Math.round((todayCount / dailyGoal) * 100) : 0,
+      history: history.slice(-30),
+      achievements,
+      counts,
+      todayCounts,
+      lastSync: new Date().toISOString(),
+    };
+    
+    // Вычисляем статистику
+    if (history.length > 0) {
+      const totals = history.map(h => h.total);
+      statsData.average = Math.round(totals.reduce((a, b) => a + b, 0) / totals.length);
+      statsData.bestDay = Math.max(...totals);
+      statsData.totalDays = history.length;
+    } else {
+      statsData.average = 0;
+      statsData.bestDay = 0;
+      statsData.totalDays = 0;
+    }
+    
+    statsData.achievementsCount = achievements.length;
+    
+    try {
+      tg.sendData(JSON.stringify(statsData));
+      console.log('✅ Статистика отправлена в бот');
+    } catch (error) {
+      console.error('Ошибка отправки статистики:', error);
+    }
+  }, [todayCount, totalAllTime, streakDays, dailyGoal, history, achievements, counts, todayCounts]);
+
+  // Настройка обработчика уведомлений
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+        }),
+      });
+    }
+  }, []);
+
+  // Инициализация Telegram при загрузке
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      initTelegramWebApp();
+    }
+  }, []);
 
   // Загрузка сохраненных данных при запуске
   useEffect(() => {
@@ -101,6 +812,20 @@ export default function App() {
       
       // Воспроизводим звук Бисмиллах
       await playBismillah();
+      
+      // Персонализированное приветствие для Telegram пользователей
+      if (telegramUser && isTelegram()) {
+        const firstName = telegramUser.first_name || 'Пользователь';
+        const greeting = currentLanguage === 'ar' 
+          ? `مرحباً ${firstName}!` 
+          : currentLanguage === 'en'
+          ? `Welcome, ${firstName}!`
+          : currentLanguage === 'uz'
+          ? `Xush kelibsiz, ${firstName}!`
+          : `Добро пожаловать, ${firstName}!`;
+        
+        console.log(`👋 ${greeting}`);
+      }
       
       // Небольшая задержка для показа экрана загрузки
       setTimeout(() => {
@@ -191,9 +916,17 @@ export default function App() {
         const today = new Date().toDateString();
         saveHistoryEntry(today, todayCount, todayCounts);
       }
+      
+      // Синхронизация с ботом (не чаще раза в 10 секунд)
+      if (isTelegram() && (!lastSyncRef.current || (new Date() - lastSyncRef.current) > 10000)) {
+        // Используем setTimeout для асинхронной отправки
+        setTimeout(() => {
+          syncDataWithBot();
+        }, 500);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todayCount, dailyGoal, vibrationEnabled, counts, todayCounts, zikrTypes]);
+  }, [todayCount, dailyGoal, vibrationEnabled, counts, todayCounts, zikrTypes, achievements, currentTheme, currentLanguage, soundsEnabled, notificationsEnabled, notificationTime, notificationInterval, totalAllTime, goalAchievedCount, streakDays, syncDataWithBot]);
 
   const checkNewDay = () => {
     const today = new Date().toDateString();
@@ -247,6 +980,51 @@ export default function App() {
         setTodayCount(parseInt(savedToday));
       }
 
+      // Загружаем новые данные
+      const savedAchievements = await AsyncStorage.getItem('achievements');
+      const savedTheme = await AsyncStorage.getItem('currentTheme');
+      const savedLanguage = await AsyncStorage.getItem('currentLanguage');
+      const savedSounds = await AsyncStorage.getItem('soundsEnabled');
+      const savedNotifications = await AsyncStorage.getItem('notificationsEnabled');
+      const savedTotalAllTime = await AsyncStorage.getItem('totalAllTime');
+      const savedGoalAchievedCount = await AsyncStorage.getItem('goalAchievedCount');
+      const savedStreakDays = await AsyncStorage.getItem('streakDays');
+
+      if (savedAchievements !== null) {
+        setAchievements(JSON.parse(savedAchievements));
+      }
+      if (savedTheme !== null) {
+        setCurrentTheme(savedTheme);
+      }
+      if (savedLanguage !== null) {
+        setCurrentLanguage(savedLanguage);
+      }
+      if (savedSounds !== null) {
+        setSoundsEnabled(savedSounds === 'true');
+      }
+      if (savedNotifications !== null) {
+        setNotificationsEnabled(savedNotifications === 'true');
+      }
+      if (savedTotalAllTime !== null) {
+        setTotalAllTime(parseInt(savedTotalAllTime));
+      }
+      if (savedGoalAchievedCount !== null) {
+        setGoalAchievedCount(parseInt(savedGoalAchievedCount));
+      }
+      if (savedStreakDays !== null) {
+        setStreakDays(parseInt(savedStreakDays));
+      }
+
+      const savedNotificationTime = await AsyncStorage.getItem('notificationTime');
+      const savedNotificationInterval = await AsyncStorage.getItem('notificationInterval');
+
+      if (savedNotificationTime !== null) {
+        setNotificationTime(savedNotificationTime);
+      }
+      if (savedNotificationInterval !== null) {
+        setNotificationInterval(parseInt(savedNotificationInterval));
+      }
+
       initializeCounts();
       isDataLoadedRef.current = true;
     } catch (error) {
@@ -290,6 +1068,17 @@ export default function App() {
       await AsyncStorage.setItem('dailyGoal', dailyGoal.toString());
       await AsyncStorage.setItem('vibrationEnabled', vibrationEnabled.toString());
       await AsyncStorage.setItem('zikrCounts', JSON.stringify(counts));
+      // Сохраняем новые данные
+      await AsyncStorage.setItem('achievements', JSON.stringify(achievements));
+      await AsyncStorage.setItem('currentTheme', currentTheme);
+      await AsyncStorage.setItem('currentLanguage', currentLanguage);
+      await AsyncStorage.setItem('soundsEnabled', soundsEnabled.toString());
+      await AsyncStorage.setItem('notificationsEnabled', notificationsEnabled.toString());
+      await AsyncStorage.setItem('totalAllTime', totalAllTime.toString());
+      await AsyncStorage.setItem('goalAchievedCount', goalAchievedCount.toString());
+      await AsyncStorage.setItem('streakDays', streakDays.toString());
+      await AsyncStorage.setItem('notificationTime', notificationTime);
+      await AsyncStorage.setItem('notificationInterval', notificationInterval.toString());
     } catch (error) {
       console.error('Ошибка сохранения данных:', error);
     }
@@ -367,33 +1156,8 @@ export default function App() {
   };
 
   const vibrate = (pattern) => {
-    if (!vibrationEnabled) return;
-    
-    if (Platform.OS === 'web') {
-      // Web Vibration API - требует пользовательского взаимодействия
-      try {
-        if ('vibrate' in navigator) {
-          if (typeof pattern === 'number') {
-            navigator.vibrate(pattern);
-          } else if (Array.isArray(pattern)) {
-            navigator.vibrate(pattern);
-          }
-        }
-      } catch (error) {
-        console.log('Vibration not supported or not allowed:', error);
-      }
-    } else {
-      // React Native Vibration
-      try {
-        if (typeof pattern === 'number') {
-          Vibration.vibrate(pattern);
-        } else if (Array.isArray(pattern)) {
-          Vibration.vibrate(pattern);
-        }
-      } catch (error) {
-        console.log('Vibration error:', error);
-      }
-    }
+    // Используем улучшенную вибрацию с поддержкой Telegram
+    vibrateWithTelegram(pattern);
   };
 
   const incrementCount = () => {
@@ -419,7 +1183,37 @@ export default function App() {
     }
 
     if (newTotal === dailyGoal) {
-      Alert.alert('🎉 Поздравляем!', `Вы достигли цели на сегодня: ${dailyGoal} зикр!`);
+      setGoalAchievedCount(goalAchievedCount + 1);
+      if (soundsEnabled) {
+        // Воспроизводим звук достижения цели
+        playSound('goal');
+      }
+      
+      // Специальная вибрация для достижения цели в Telegram
+      if (isTelegram() && telegramWebAppRef.current?.HapticFeedback) {
+        telegramWebAppRef.current.HapticFeedback.notificationOccurred('success');
+      }
+      
+      // Отправляем статистику в бот при достижении цели
+      if (isTelegram()) {
+        sendStatsToBot();
+      }
+      
+      Alert.alert(t.goalAchieved, t.goalAchievedText.replace('{goal}', dailyGoal));
+    }
+  };
+
+  // Воспроизведение звуков
+  const playSound = async (type) => {
+    if (!soundsEnabled) return;
+    try {
+      // Здесь можно добавить разные звуки для разных типов
+      // Пока используем простую вибрацию
+      if (vibrationEnabled) {
+        vibrate([100, 50, 100, 50, 100]);
+      }
+    } catch (error) {
+      console.log('Ошибка воспроизведения звука:', error);
     }
   };
 
@@ -476,7 +1270,7 @@ export default function App() {
 
   const addCustomZikr = () => {
     if (newZikrName.trim() === '') {
-      Alert.alert('Ошибка', 'Введите название зикра');
+      Alert.alert(t.error, t.enterZikrName);
       return;
     }
 
@@ -499,12 +1293,12 @@ export default function App() {
 
   const deleteCustomZikr = (id) => {
     Alert.alert(
-      'Удалить зикр',
-      'Вы уверены, что хотите удалить этот вид зикра?',
+      t.deleteZikr,
+      t.deleteZikrConfirm,
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Удалить',
+          text: t.delete,
           style: 'destructive',
           onPress: () => {
             const zikr = zikrTypes.find(z => z.id === id);
@@ -527,12 +1321,12 @@ export default function App() {
       setShowResetSessionConfirm(true);
     } else {
       Alert.alert(
-        'Сброс сессии',
-        'Вы уверены, что хотите сбросить текущую сессию?',
+        t.resetSessionTitle,
+        t.resetSessionConfirm,
         [
-          { text: 'Отмена', style: 'cancel' },
+          { text: t.cancel, style: 'cancel' },
           {
-            text: 'Сбросить',
+            text: t.reset,
             style: 'destructive',
             onPress: () => {
               const resetCounts = {};
@@ -553,6 +1347,8 @@ export default function App() {
       resetCounts[type.id] = 0;
     });
     setCounts(resetCounts);
+    setSessionStartTime(null);
+    setSessionDuration(0);
     setShowResetSessionConfirm(false);
   };
 
@@ -562,22 +1358,22 @@ export default function App() {
       setShowResetAllConfirm(true);
     } else {
       Alert.alert(
-        'Сброс всех данных',
-        'Вы уверены, что хотите сбросить все данные? Это действие нельзя отменить.',
+        t.resetAllTitle,
+        t.resetAllConfirm,
         [
-          { text: 'Отмена', style: 'cancel' },
+          { text: t.cancel, style: 'cancel' },
           {
-            text: 'Сбросить',
+            text: t.reset,
             style: 'destructive',
             onPress: async () => {
               // Показываем второе подтверждение
               Alert.alert(
-                'Подтверждение',
-                'Это удалит ВСЕ данные. Вы абсолютно уверены?',
+                t.confirmation,
+                t.resetAllConfirm2,
                 [
-                  { text: 'Отмена', style: 'cancel' },
+                  { text: t.cancel, style: 'cancel' },
                   {
-                    text: 'Сбросить',
+                    text: t.reset,
                     style: 'destructive',
                     onPress: async () => {
                       const resetCounts = {};
@@ -631,12 +1427,12 @@ export default function App() {
       setVibrationEnabled(true);
       setShowResetAllConfirm2(false);
       if (Platform.OS === 'web') {
-        alert('Все данные успешно сброшены');
+        alert(t.allDataReset);
       }
     } catch (error) {
       console.error('Ошибка очистки данных:', error);
       if (Platform.OS === 'web') {
-        alert('Ошибка при сбросе данных');
+        alert(t.resetError);
       }
     }
   };
@@ -648,11 +1444,12 @@ export default function App() {
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (dateString === today.toDateString()) {
-      return 'Сегодня';
+      return t.today;
     } else if (dateString === yesterday.toDateString()) {
-      return 'Вчера';
+      return t.yesterday;
     } else {
-      return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+      const locale = currentLanguage === 'ar' ? 'ar-SA' : currentLanguage === 'uz' ? 'uz-UZ' : currentLanguage === 'en' ? 'en-US' : 'ru-RU';
+      return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
     }
   };
 
@@ -676,6 +1473,301 @@ export default function App() {
   const currentZikrType = zikrTypes.find(t => t.id === zikrType) || zikrTypes[0];
   const currentCount = counts[zikrType] || 0;
   const stats = getStats();
+  const t = LANGUAGES[currentLanguage] || LANGUAGES.ru; // Переводы
+
+  // Функции для новых возможностей
+  const checkAchievements = useCallback((totalCount) => {
+    const newAchievements = [];
+    ACHIEVEMENTS.forEach(achievement => {
+      if (!achievements.includes(achievement.id)) {
+        if (achievement.id === 'first_100' && totalCount >= 100) {
+          newAchievements.push(achievement.id);
+        } else if (achievement.id === 'first_1000' && totalCount >= 1000) {
+          newAchievements.push(achievement.id);
+        } else if (achievement.id === 'first_10000' && totalCount >= 10000) {
+          newAchievements.push(achievement.id);
+        } else if (achievement.id === 'week_streak' && streakDays >= 7) {
+          newAchievements.push(achievement.id);
+        } else if (achievement.id === 'month_streak' && streakDays >= 30) {
+          newAchievements.push(achievement.id);
+        } else if (achievement.id === 'goal_achiever' && goalAchievedCount >= 10) {
+          newAchievements.push(achievement.id);
+        }
+      }
+    });
+    if (newAchievements.length > 0) {
+      setAchievements([...achievements, ...newAchievements]);
+      newAchievements.forEach(achId => {
+        const ach = ACHIEVEMENTS.find(a => a.id === achId);
+        if (ach) {
+          Alert.alert('🎉 ' + t.achievements + '!', `${ach.icon} ${ach.name}\n${ach.description}`);
+        }
+      });
+    }
+  }, [achievements, streakDays, goalAchievedCount]);
+
+  // Таймер сессии
+  useEffect(() => {
+    if (currentCount > 0 && !sessionStartTime) {
+      setSessionStartTime(new Date());
+    }
+    if (currentCount === 0 && sessionStartTime) {
+      setSessionStartTime(null);
+      setSessionDuration(0);
+      if (sessionTimerRef.current) {
+        clearInterval(sessionTimerRef.current);
+      }
+    }
+    if (sessionStartTime && currentCount > 0) {
+      sessionTimerRef.current = setInterval(() => {
+        const now = new Date();
+        const diff = Math.floor((now - sessionStartTime) / 1000);
+        setSessionDuration(diff);
+      }, 1000);
+    }
+    return () => {
+      if (sessionTimerRef.current) {
+        clearInterval(sessionTimerRef.current);
+      }
+    };
+  }, [sessionStartTime, currentCount]);
+
+  const formatTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getSessionSpeed = () => {
+    if (sessionDuration === 0 || currentCount === 0) return 0;
+    return Math.round((currentCount / sessionDuration) * 60);
+  };
+
+  // Расширенная статистика
+  const getExtendedStats = () => {
+    const allTimeTotal = history.reduce((sum, h) => sum + h.total, 0) + todayCount;
+    const byTimeOfDay = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+    const byType = {};
+    
+    zikrTypes.forEach(type => {
+      const typeTotal = history.reduce((sum, h) => sum + (h.counts?.[type.id] || 0), 0) + (todayCounts[type.id] || 0);
+      byType[type.id] = typeTotal;
+    });
+
+    return {
+      allTimeTotal,
+      byTimeOfDay,
+      byType,
+      averageSpeed: stats ? stats.average : 0,
+    };
+  };
+
+  // График данных
+  const getChartData = () => {
+    const now = new Date();
+    const days = chartPeriod === 'week' ? 7 : 30;
+    const data = [];
+    
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toDateString();
+      const entry = history.find(h => h.date === dateStr);
+      data.push({
+        date: dateStr,
+        value: entry ? entry.total : 0,
+        label: i === 0 ? t.today : i === 1 ? t.yesterday : date.toLocaleDateString(currentLanguage === 'ar' ? 'ar-SA' : currentLanguage === 'uz' ? 'uz-UZ' : currentLanguage === 'en' ? 'en-US' : 'ru-RU', { day: 'numeric', month: 'short' }),
+      });
+    }
+    
+    return data;
+  };
+
+  // Экспорт данных
+  const exportData = async () => {
+    try {
+      const data = {
+        zikrTypes,
+        history,
+        counts,
+        todayCount,
+        todayCounts,
+        dailyGoal,
+        achievements,
+        totalAllTime,
+        goalAchievedCount,
+        streakDays,
+        exportDate: new Date().toISOString(),
+      };
+      const json = JSON.stringify(data, null, 2);
+      
+      if (Platform.OS === 'web') {
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `misbaha_backup_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        Alert.alert(t.success, t.exportSuccess);
+      } else {
+        // Для мобильных можно использовать expo-file-system или поделиться
+        Alert.alert(t.export, `Данные:\n${json.substring(0, 200)}...`);
+      }
+    } catch (error) {
+      console.error('Ошибка экспорта:', error);
+      Alert.alert(t.error, t.exportError);
+    }
+  };
+
+  // Импорт данных
+  const importData = async (jsonData) => {
+    try {
+      const data = JSON.parse(jsonData);
+      if (data.zikrTypes) setZikrTypes(data.zikrTypes);
+      if (data.history) setHistory(data.history);
+      if (data.counts) setCounts(data.counts);
+      if (data.todayCount !== undefined) setTodayCount(data.todayCount);
+      if (data.todayCounts) setTodayCounts(data.todayCounts);
+      if (data.dailyGoal) setDailyGoal(data.dailyGoal);
+      if (data.achievements) setAchievements(data.achievements);
+      if (data.totalAllTime) setTotalAllTime(data.totalAllTime);
+      if (data.goalAchievedCount) setGoalAchievedCount(data.goalAchievedCount);
+      if (data.streakDays) setStreakDays(data.streakDays);
+      Alert.alert(t.success, t.importSuccess);
+    } catch (error) {
+      console.error('Ошибка импорта:', error);
+      Alert.alert(t.error, t.importErrorFormat);
+    }
+  };
+
+  // Обновление достижений при изменении счетчиков
+  useEffect(() => {
+    if (isDataLoadedRef.current) {
+      const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+      checkAchievements(total);
+      setTotalAllTime(total);
+    }
+  }, [counts, checkAchievements]);
+
+  // Обновление серии дней
+  useEffect(() => {
+    if (history.length > 0) {
+      let streak = 0;
+      const sortedHistory = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
+      const today = new Date().toDateString();
+      
+      for (let i = 0; i < sortedHistory.length; i++) {
+        const entryDate = new Date(sortedHistory[i].date);
+        const expectedDate = new Date(today);
+        expectedDate.setDate(expectedDate.getDate() - i);
+        
+        if (entryDate.toDateString() === expectedDate.toDateString() && sortedHistory[i].total > 0) {
+          streak++;
+        } else {
+          break;
+        }
+      }
+      setStreakDays(streak);
+    }
+  }, [history, todayCount]);
+
+  // Функции для уведомлений
+  const requestNotificationPermissions = async () => {
+    if (Platform.OS === 'web') {
+      // Для веба используем Web Notifications API
+      if ('Notification' in window) {
+        const permission = await Notification.requestPermission();
+        return permission === 'granted';
+      }
+      return false;
+    } else {
+      // Для мобильных устройств
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      
+      return finalStatus === 'granted';
+    }
+  };
+
+  const scheduleNotifications = async () => {
+    if (!notificationsEnabled) {
+      // Отменяем все уведомления
+      if (Platform.OS !== 'web') {
+        await Notifications.cancelAllScheduledNotificationsAsync();
+      }
+      return;
+    }
+
+    const hasPermission = await requestNotificationPermissions();
+    if (!hasPermission) {
+      Alert.alert(t.permission, t.notificationPermissionApp);
+      setNotificationsEnabled(false);
+      return;
+    }
+
+    if (Platform.OS === 'web') {
+      // Для веба используем Web Notifications API (только для текущей сессии)
+      // Постоянные уведомления на вебе требуют Service Worker
+      return;
+    }
+
+    // Отменяем старые уведомления
+    await Notifications.cancelAllScheduledNotificationsAsync();
+
+    // Создаем ежедневное уведомление в указанное время
+    const [hours, minutes] = notificationTime.split(':').map(Number);
+    const trigger = {
+      hour: hours,
+      minute: minutes,
+      repeats: true,
+    };
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '⏰ Время для зикра',
+        body: 'Не забудьте совершить зикр сегодня!',
+        sound: true,
+      },
+      trigger,
+    });
+
+    // Создаем периодические уведомления (каждые N часов)
+    if (notificationInterval > 0) {
+      const intervalTrigger = {
+        seconds: notificationInterval * 3600,
+        repeats: true,
+      };
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '📿 Напоминание о зикре',
+          body: 'Время для зикра!',
+          sound: true,
+        },
+        trigger: intervalTrigger,
+      });
+    }
+  };
+
+  // Обновление уведомлений при изменении настроек
+  useEffect(() => {
+    if (isDataLoadedRef.current) {
+      scheduleNotifications();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notificationsEnabled, notificationTime, notificationInterval]);
 
   const saveGoal = () => {
     const newGoal = parseInt(goalInput);
@@ -684,7 +1776,7 @@ export default function App() {
       setShowGoalInput(false);
       setGoalInput('');
     } else {
-      Alert.alert('Ошибка', 'Введите число от 1 до 10000');
+      Alert.alert(t.error, t.goalError);
     }
   };
 
@@ -692,7 +1784,11 @@ export default function App() {
     <View style={styles.counterScreen}>
       {/* Заголовок */}
       <View style={styles.counterHeader}>
-        <Text style={styles.counterTitle}>Счетчик Зикра</Text>
+        <Text style={styles.counterTitle}>
+          {telegramUser && isTelegram() 
+            ? `${t.counter}${telegramUser.first_name ? `, ${telegramUser.first_name}` : ''}`
+            : t.counter}
+        </Text>
       </View>
 
       {/* Выбор зикра - минималистичный */}
@@ -703,20 +1799,28 @@ export default function App() {
         <View style={styles.zikrSelectorContent}>
           <Text style={styles.zikrSelectorArabic}>{currentZikrType.arabic}</Text>
           <Text style={styles.zikrSelectorName}>{currentZikrType.name}</Text>
-          <Text style={styles.zikrSelectorHint}>Нажмите для выбора</Text>
+          <Text style={styles.zikrSelectorHint}>{t.selectZikr}</Text>
         </View>
       </TouchableOpacity>
 
       {/* Основной счетчик */}
       <Animated.View style={[styles.mainCounter, { transform: [{ scale: scaleAnim }] }]}>
         <Text style={styles.counterValue}>{currentCount}</Text>
-        <Text style={styles.counterLabel}>Текущая сессия</Text>
+        <Text style={styles.counterLabel}>{t.currentSession}</Text>
+        {sessionDuration > 0 && (
+          <View style={styles.sessionInfo}>
+            <Text style={styles.sessionTime}>{formatTime(sessionDuration)}</Text>
+            {getSessionSpeed() > 0 && (
+              <Text style={styles.sessionSpeed}>{getSessionSpeed()} {t.perMinute}</Text>
+            )}
+          </View>
+        )}
       </Animated.View>
 
       {/* Статистика за сегодня */}
       <View style={styles.todayStats}>
         <Text style={styles.todayValue}>{todayCount}</Text>
-        <Text style={styles.todayLabel}>Сегодня</Text>
+        <Text style={styles.todayLabel}>{t.today}</Text>
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${goalProgress}%` }]} />
         </View>
@@ -745,7 +1849,7 @@ export default function App() {
       {/* Кнопки действий */}
       <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.actionButton} onPress={resetSession}>
-          <Text style={styles.actionButtonText}>Сбросить сессию</Text>
+          <Text style={styles.actionButtonText}>{t.resetSession}</Text>
         </TouchableOpacity>
       </View>
 
@@ -759,7 +1863,7 @@ export default function App() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Выберите зикр</Text>
+              <Text style={styles.modalTitle}>{t.selectZikrTitle}</Text>
               <TouchableOpacity onPress={() => setShowZikrSelector(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
@@ -799,7 +1903,7 @@ export default function App() {
                   setShowAddZikr(true);
                 }}
               >
-                <Text style={styles.addZikrInModalText}>+ Добавить новый зикр</Text>
+                <Text style={styles.addZikrInModalText}>{t.addNewZikr}</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -820,9 +1924,9 @@ export default function App() {
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Добавить зикр</Text>
+              <Text style={[styles.modalTitle, { color: COLORS_THEME.lightText }]}>{t.addZikr}</Text>
               <TouchableOpacity onPress={() => setShowAddZikr(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Text style={[styles.modalClose, { color: COLORS_THEME.darkText }]}>✕</Text>
               </TouchableOpacity>
             </View>
             <ScrollView 
@@ -831,48 +1935,48 @@ export default function App() {
               keyboardShouldPersistTaps="handled"
             >
               <View style={styles.formSection}>
-                <Text style={styles.formLabel}>Название зикра *</Text>
-                <Text style={styles.formHint}>Введите название на латинице</Text>
+                <Text style={[styles.formLabel, { color: COLORS_THEME.lightText }]}>{t.zikrName}</Text>
+                <Text style={[styles.formHint, { color: COLORS_THEME.darkText }]}>{t.zikrNameHint}</Text>
                 <TextInput
-                  style={styles.formInput}
+                  style={[styles.formInput, { borderColor: COLORS_THEME.darkTeal, color: COLORS_THEME.lightText }]}
                   value={newZikrName}
                   onChangeText={handleZikrNameChange}
                   placeholder="Например: СубханАллах"
-                  placeholderTextColor={COLORS.darkText}
+                  placeholderTextColor={COLORS_THEME.darkText}
                   autoCapitalize="words"
                 />
               </View>
 
               <View style={styles.formSection}>
-                <Text style={styles.formLabel}>Арабский текст</Text>
-                <Text style={styles.formHint}>Опционально. Введите арабский текст</Text>
+                <Text style={[styles.formLabel, { color: COLORS_THEME.lightText }]}>{t.arabicText}</Text>
+                <Text style={[styles.formHint, { color: COLORS_THEME.darkText }]}>{t.arabicTextHint}</Text>
                 <TextInput
-                  style={[styles.formInput, styles.formInputArabic]}
+                  style={[styles.formInput, styles.formInputArabic, { borderColor: COLORS_THEME.darkTeal, color: COLORS_THEME.lightText }]}
                   value={newZikrArabic}
                   onChangeText={setNewZikrArabic}
                   placeholder="سُبْحَانَ اللَّهِ"
-                  placeholderTextColor={COLORS.darkText}
+                  placeholderTextColor={COLORS_THEME.darkText}
                   textAlign="right"
                 />
               </View>
 
               <View style={styles.formButtons}>
                 <TouchableOpacity 
-                  style={[styles.formButton, styles.formButtonCancel]} 
+                  style={[styles.formButton, styles.formButtonCancel, { borderColor: COLORS_THEME.darkTeal }]} 
                   onPress={() => {
                     setShowAddZikr(false);
                     setNewZikrName('');
                     setNewZikrArabic('');
                   }}
                 >
-                  <Text style={styles.formButtonCancelText}>Отмена</Text>
+                  <Text style={[styles.formButtonCancelText, { color: COLORS_THEME.lightText }]}>{t.cancel}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={[styles.formButton, styles.formButtonAdd, !newZikrName.trim() && styles.formButtonDisabled]} 
+                  style={[styles.formButton, styles.formButtonAdd, { backgroundColor: COLORS_THEME.orange }, !newZikrName.trim() && styles.formButtonDisabled]} 
                   onPress={addCustomZikr}
                   disabled={!newZikrName.trim()}
                 >
-                  <Text style={styles.formButtonAddText}>Добавить</Text>
+                  <Text style={[styles.formButtonAddText, { color: COLORS_THEME.veryDarkGreen }]}>{t.add}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -885,17 +1989,17 @@ export default function App() {
   const renderHistoryScreen = () => (
     <View style={styles.historyScreen}>
       <ScrollView style={styles.historyContent} contentContainerStyle={styles.historyScrollContent}>
-        <Text style={styles.screenTitle}>История</Text>
+        <Text style={styles.screenTitle}>{t.history}</Text>
       {history.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>История пуста</Text>
-          <Text style={styles.emptySubtext}>Начните совершать зикр, чтобы увидеть статистику</Text>
+          <Text style={styles.emptyText}>{t.historyEmpty}</Text>
+          <Text style={styles.emptySubtext}>{t.historyEmptyDesc}</Text>
         </View>
       ) : (
         history.slice().reverse().map((entry, index) => (
           <View key={index} style={styles.historyItem}>
             <Text style={styles.historyDate}>{formatDate(entry.date)}</Text>
-            <Text style={styles.historyTotal}>{entry.total} зикр</Text>
+            <Text style={styles.historyTotal}>{entry.total} {t.zikr}</Text>
           </View>
         ))
       )}
@@ -906,15 +2010,15 @@ export default function App() {
   const renderSettingsScreen = () => (
     <View style={styles.settingsScreen}>
       <ScrollView style={styles.settingsContent} contentContainerStyle={styles.settingsScrollContent}>
-        <Text style={styles.screenTitle}>Настройки</Text>
+        <Text style={styles.screenTitle}>{t.settings}</Text>
       
       <View style={styles.settingsSection}>
-        <Text style={styles.settingsSectionTitle}>Уведомления</Text>
+        <Text style={styles.settingsSectionTitle}>{t.notifications}</Text>
         
         <View style={styles.settingItem}>
           <View style={styles.settingItemLeft}>
-            <Text style={styles.settingItemTitle}>Вибрация</Text>
-            <Text style={styles.settingItemDescription}>Вибрация при каждом зикре</Text>
+            <Text style={styles.settingItemTitle}>{t.vibration}</Text>
+            <Text style={styles.settingItemDescription}>{t.vibrationDesc}</Text>
           </View>
           <TouchableOpacity
             style={[styles.toggle, vibrationEnabled && styles.toggleActive]}
@@ -923,15 +2027,68 @@ export default function App() {
             <View style={[styles.toggleThumb, vibrationEnabled && styles.toggleThumbActive]} />
           </TouchableOpacity>
         </View>
+
+        <View style={[styles.settingItem, { borderColor: COLORS_THEME.darkTeal }]}>
+          <View style={styles.settingItemLeft}>
+            <Text style={[styles.settingItemTitle, { color: COLORS_THEME.lightText }]}>{t.reminders}</Text>
+            <Text style={[styles.settingItemDescription, { color: COLORS_THEME.darkText }]}>{t.remindersDesc}</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.toggle, { borderColor: COLORS_THEME.darkTeal }, notificationsEnabled && styles.toggleActive, notificationsEnabled && { backgroundColor: COLORS_THEME.darkTeal }]}
+            onPress={async () => {
+              const newValue = !notificationsEnabled;
+              setNotificationsEnabled(newValue);
+              if (newValue) {
+                const hasPermission = await requestNotificationPermissions();
+                if (!hasPermission) {
+                  setNotificationsEnabled(false);
+                  Alert.alert(t.permission, t.notificationPermission);
+                }
+              }
+            }}
+          >
+            <View style={[styles.toggleThumb, notificationsEnabled && styles.toggleThumbActive, notificationsEnabled && { backgroundColor: COLORS_THEME.orange }]} />
+          </TouchableOpacity>
+        </View>
+
+        {notificationsEnabled && (
+          <>
+            <View style={styles.settingItem}>
+              <View style={styles.settingItemLeft}>
+                <Text style={styles.settingItemTitle}>{t.dailyReminderTime}</Text>
+                <Text style={styles.settingItemDescription}>{t.dailyReminderTimeDesc}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.timeButton}
+                onPress={() => setShowNotificationTimePicker(true)}
+              >
+                <Text style={styles.timeButtonText}>{notificationTime}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.settingItem}>
+              <View style={styles.settingItemLeft}>
+                <Text style={styles.settingItemTitle}>{t.reminderInterval}</Text>
+                <Text style={styles.settingItemDescription}>{t.reminderIntervalDesc}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.intervalButton}
+                onPress={() => setShowNotificationIntervalPicker(true)}
+              >
+                <Text style={styles.intervalButtonText}>{notificationInterval} ч</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
 
       <View style={styles.settingsSection}>
-        <Text style={styles.settingsSectionTitle}>Цели</Text>
+        <Text style={styles.settingsSectionTitle}>{t.goals}</Text>
         
-        <View style={styles.settingItem}>
+        <View style={[styles.settingItem, { borderColor: COLORS_THEME.darkTeal }]}>
           <View style={styles.settingItemLeft}>
-            <Text style={styles.settingItemTitle}>Цель на день</Text>
-            <Text style={styles.settingItemDescription}>Количество зикр для достижения цели</Text>
+            <Text style={[styles.settingItemTitle, { color: COLORS_THEME.lightText }]}>{t.dailyGoal}</Text>
+            <Text style={[styles.settingItemDescription, { color: COLORS_THEME.darkText }]}>{t.dailyGoalDesc}</Text>
           </View>
           {showGoalInput ? (
             <View style={styles.goalInputWrapper}>
@@ -972,45 +2129,246 @@ export default function App() {
       </View>
 
       <View style={styles.settingsSection}>
-        <Text style={styles.settingsSectionTitle}>Данные</Text>
+        <Text style={styles.settingsSectionTitle}>{t.sounds}</Text>
+        
+        <View style={styles.settingItem}>
+          <View style={styles.settingItemLeft}>
+            <Text style={styles.settingItemTitle}>{t.sounds}</Text>
+            <Text style={styles.settingItemDescription}>{t.soundsDesc}</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.toggle, soundsEnabled && styles.toggleActive]}
+            onPress={() => setSoundsEnabled(!soundsEnabled)}
+          >
+            <View style={[styles.toggleThumb, soundsEnabled && styles.toggleThumbActive]} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.settingsSectionTitle}>{t.theme}</Text>
+        
+        {Object.keys(THEMES).map(themeKey => (
+          <TouchableOpacity
+            key={themeKey}
+            style={[styles.themeOption, currentTheme === themeKey && styles.themeOptionActive]}
+            onPress={() => setCurrentTheme(themeKey)}
+          >
+            <Text style={[styles.themeOptionText, currentTheme === themeKey && styles.themeOptionTextActive]}>
+              {THEMES[themeKey].name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.settingsSectionTitle}>{t.language}</Text>
+        
+        {Object.keys(LANGUAGES).map(langKey => (
+          <TouchableOpacity
+            key={langKey}
+            style={[
+              styles.languageOption,
+              { borderColor: COLORS_THEME.darkTeal },
+              currentLanguage === langKey && styles.languageOptionActive,
+              currentLanguage === langKey && { backgroundColor: COLORS_THEME.darkTeal, borderColor: COLORS_THEME.orange }
+            ]}
+            onPress={() => setCurrentLanguage(langKey)}
+          >
+            <Text style={[
+              styles.languageOptionText,
+              { color: COLORS_THEME.lightText },
+              currentLanguage === langKey && styles.languageOptionTextActive,
+              currentLanguage === langKey && { color: COLORS_THEME.orange }
+            ]}>
+              {LANGUAGES[langKey].name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.settingsSectionTitle}>{t.achievements}</Text>
+        
+        <TouchableOpacity style={[styles.actionButton, { borderColor: COLORS_THEME.darkTeal }]} onPress={() => setShowAchievements(true)}>
+          <Text style={[styles.actionButtonText, { color: COLORS_THEME.lightText }]}>{t.viewAchievements}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Telegram функции - только если запущено в Telegram */}
+      {isTelegram() && (
+        <View style={styles.settingsSection}>
+          <Text style={[styles.settingsSectionTitle, { color: COLORS_THEME.lightText }]}>Telegram</Text>
+          
+          <TouchableOpacity 
+            style={[styles.actionButton, { borderColor: COLORS_THEME.darkTeal, backgroundColor: COLORS_THEME.darkTeal }]} 
+            onPress={() => {
+              sendStatsToBot();
+              Alert.alert(t.success, 'Статистика отправлена в бот! Используйте команду /stats в боте для просмотра.');
+            }}
+          >
+            <Text style={[styles.actionButtonText, { color: COLORS_THEME.lightText }]}>📊 Отправить статистику в бот</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.actionButton, { borderColor: COLORS_THEME.darkTeal }]} 
+            onPress={() => {
+              syncDataWithBot();
+              // Показываем MainButton для подтверждения отправки
+              if (isTelegram() && telegramWebAppRef.current?.MainButton) {
+                const mainButton = telegramWebAppRef.current.MainButton;
+                mainButton.setText('📤 Отправка данных...');
+                mainButton.show();
+                mainButton.onClick(() => {
+                  syncDataWithBot();
+                  mainButton.hide();
+                  Alert.alert(t.success, 'Данные синхронизированы с ботом!');
+                });
+                // Автоматически скрываем через 3 секунды
+                setTimeout(() => {
+                  mainButton.hide();
+                }, 3000);
+              } else {
+                Alert.alert(t.success, 'Данные синхронизированы с ботом!');
+              }
+            }}
+          >
+            <Text style={[styles.actionButtonText, { color: COLORS_THEME.lightText }]}>🔄 Синхронизировать данные</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <View style={styles.settingsSection}>
+        <Text style={[styles.settingsSectionTitle, { color: COLORS_THEME.lightText }]}>{t.export}</Text>
+        
+        <TouchableOpacity style={[styles.actionButton, { borderColor: COLORS_THEME.darkTeal }]} onPress={exportData}>
+          <Text style={[styles.actionButtonText, { color: COLORS_THEME.lightText }]}>{t.export}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.actionButton, { borderColor: COLORS_THEME.darkTeal }]} onPress={() => setShowImportModal(true)}>
+          <Text style={[styles.actionButtonText, { color: COLORS_THEME.lightText }]}>{t.import}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.settingsSectionTitle}>{t.data}</Text>
         
         <TouchableOpacity style={styles.dangerButton} onPress={resetAll}>
-          <Text style={styles.dangerButtonText}>Сбросить все данные</Text>
+          <Text style={styles.dangerButtonText}>{t.resetAll}</Text>
         </TouchableOpacity>
       </View>
       </ScrollView>
     </View>
   );
 
-  const renderStatsScreen = () => (
-    <View style={styles.statsScreen}>
-      <ScrollView style={styles.statsContent} contentContainerStyle={styles.statsScrollContent}>
-        <Text style={styles.screenTitle}>Статистика</Text>
-      {!stats ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>Недостаточно данных</Text>
-          <Text style={styles.emptySubtext}>Нужна минимум 1 запись в истории</Text>
-        </View>
-      ) : (
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.average}</Text>
-            <Text style={styles.statLabel}>Среднее в день</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.bestDay}</Text>
-            <Text style={styles.statLabel}>Лучший день</Text>
-            <Text style={styles.statSubtext}>{stats.bestDayDate}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.totalDays}</Text>
-            <Text style={styles.statLabel}>Всего дней</Text>
-          </View>
-        </View>
-      )}
-      </ScrollView>
-    </View>
-  );
+  const renderStatsScreen = () => {
+    const extendedStats = getExtendedStats();
+    const chartData = getChartData();
+    const maxValue = Math.max(...chartData.map(d => d.value), 1);
+    
+    return (
+      <View style={styles.statsScreen}>
+        <ScrollView style={styles.statsContent} contentContainerStyle={styles.statsScrollContent}>
+          <Text style={[styles.screenTitle, { color: COLORS_THEME.lightText }]}>{t.stats}</Text>
+          {!stats ? (
+            <View style={styles.emptyState}>
+              <Text style={[styles.emptyText, { color: COLORS_THEME.darkText }]}>{t.notEnoughData}</Text>
+              <Text style={[styles.emptySubtext, { color: COLORS_THEME.darkText }]}>{t.needMinHistory}</Text>
+            </View>
+          ) : (
+            <>
+              {/* Основная статистика */}
+              <View style={styles.statsContainer}>
+                <View style={styles.statCard}>
+                  <Text style={styles.statValue}>{stats.average}</Text>
+                  <Text style={styles.statLabel}>{t.averagePerDay}</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statValue}>{stats.bestDay}</Text>
+                  <Text style={styles.statLabel}>{t.bestDay}</Text>
+                  <Text style={styles.statSubtext}>{stats.bestDayDate}</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statValue}>{stats.totalDays}</Text>
+                  <Text style={styles.statLabel}>{t.totalDays}</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statValue}>{extendedStats.allTimeTotal}</Text>
+                  <Text style={styles.statLabel}>{t.totalAllTime}</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statValue}>{streakDays}</Text>
+                  <Text style={styles.statLabel}>{t.daysStreak}</Text>
+                </View>
+              </View>
+
+              {/* График */}
+              <View style={styles.chartSection}>
+                <View style={styles.chartHeader}>
+                  <Text style={styles.chartTitle}>{t.charts}</Text>
+                  <View style={styles.chartPeriodSelector}>
+                    <TouchableOpacity
+                      style={[styles.chartPeriodButton, chartPeriod === 'week' && styles.chartPeriodButtonActive]}
+                      onPress={() => setChartPeriod('week')}
+                    >
+                      <Text style={[styles.chartPeriodText, chartPeriod === 'week' && styles.chartPeriodTextActive]}>
+                        {t.week}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.chartPeriodButton, chartPeriod === 'month' && styles.chartPeriodButtonActive]}
+                      onPress={() => setChartPeriod('month')}
+                    >
+                      <Text style={[styles.chartPeriodText, chartPeriod === 'month' && styles.chartPeriodTextActive]}>
+                        {t.month}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.chartContainer}>
+                  <Svg height={200} width={SCREEN_WIDTH - 48}>
+                    {chartData.map((item, index) => {
+                      const x = (index * (SCREEN_WIDTH - 48)) / (chartData.length - 1 || 1);
+                      const barHeight = maxValue > 0 ? (item.value / maxValue) * 180 : 0;
+                      const y = 200 - barHeight;
+                      return (
+                        <Rect
+                          key={index}
+                          x={x - 8}
+                          y={y}
+                          width={16}
+                          height={barHeight}
+                          fill={COLORS_THEME.orange}
+                          opacity={0.8}
+                        />
+                      );
+                    })}
+                  </Svg>
+                  <View style={styles.chartLabels}>
+                    {chartData.map((item, index) => (
+                      <Text key={index} style={[styles.chartLabel, { color: COLORS_THEME.darkText }]} numberOfLines={1}>
+                        {item.label}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              {/* Статистика по типам */}
+              <View style={styles.byTypeSection}>
+                <Text style={styles.sectionTitle}>{t.byType}</Text>
+                {zikrTypes.map(type => (
+                  <View key={type.id} style={styles.typeStatItem}>
+                    <Text style={styles.typeStatName}>{type.name}</Text>
+                    <Text style={styles.typeStatValue}>{extendedStats.byType[type.id] || 0}</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+        </ScrollView>
+      </View>
+    );
+  };
 
   const renderSplashScreen = () => (
     <View style={styles.splashScreen}>
@@ -1082,12 +2440,12 @@ export default function App() {
                 {currentScreen === 'history' ? (
                   <View style={styles.activeTabPill}>
                     <Ionicons name="book" size={24} color="#1a1a2e" />
-                    <Text style={styles.activeTabText}>История</Text>
+                    <Text style={styles.activeTabText}>{t.history}</Text>
                   </View>
                 ) : (
                   <View style={styles.inactiveTabContainer}>
                     <Ionicons name="book-outline" size={22} color="rgba(255, 255, 255, 0.7)" />
-                    <Text style={styles.inactiveTabText}>История</Text>
+                    <Text style={styles.inactiveTabText}>{t.history}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -1100,12 +2458,12 @@ export default function App() {
                 {currentScreen === 'stats' ? (
                   <View style={styles.activeTabPill}>
                     <Ionicons name="stats-chart" size={24} color="#1a1a2e" />
-                    <Text style={styles.activeTabText} numberOfLines={1}>Статистика</Text>
+                    <Text style={styles.activeTabText} numberOfLines={1}>{t.stats}</Text>
                   </View>
                 ) : (
                   <View style={styles.inactiveTabContainer}>
                     <Ionicons name="stats-chart-outline" size={22} color="rgba(255, 255, 255, 0.7)" />
-                    <Text style={styles.inactiveTabText}>Статистика</Text>
+                    <Text style={styles.inactiveTabText}>{t.stats}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -1118,12 +2476,12 @@ export default function App() {
                 {currentScreen === 'settings' ? (
                   <View style={styles.activeTabPill}>
                     <Ionicons name="settings" size={24} color="#1a1a2e" />
-                    <Text style={styles.activeTabText}>Настройки</Text>
+                    <Text style={styles.activeTabText}>{t.settings}</Text>
                   </View>
                 ) : (
                   <View style={styles.inactiveTabContainer}>
                     <Ionicons name="settings-outline" size={22} color="rgba(255, 255, 255, 0.7)" />
-                    <Text style={styles.inactiveTabText}>Настройки</Text>
+                    <Text style={styles.inactiveTabText}>{t.settings}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -1138,6 +2496,196 @@ export default function App() {
       {currentScreen === 'stats' && renderStatsScreen()}
       {currentScreen === 'settings' && renderSettingsScreen()}
 
+      {/* Модальное окно достижений */}
+      <Modal
+        visible={showAchievements}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAchievements(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t.achievements}</Text>
+              <TouchableOpacity onPress={() => setShowAchievements(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {ACHIEVEMENTS.map(achievement => {
+                const isUnlocked = achievements.includes(achievement.id);
+                return (
+                  <View
+                    key={achievement.id}
+                    style={[styles.achievementItem, { borderColor: COLORS_THEME.darkTeal }, !isUnlocked && styles.achievementItemLocked]}
+                  >
+                    <Text style={styles.achievementIcon}>{achievement.icon}</Text>
+                    <View style={styles.achievementContent}>
+                      <Text style={[styles.achievementName, { color: COLORS_THEME.lightText }]}>{achievement.name}</Text>
+                      <Text style={[styles.achievementDescription, { color: COLORS_THEME.darkText }]}>{achievement.description}</Text>
+                    </View>
+                    {isUnlocked && <Text style={[styles.achievementCheck, { color: COLORS_THEME.orange }]}>✓</Text>}
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Модальное окно выбора времени уведомления */}
+      <Modal
+        visible={showNotificationTimePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowNotificationTimePicker(false)}
+      >
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <Text style={styles.confirmModalTitle}>{t.notificationTimeTitle}</Text>
+            <Text style={styles.confirmModalText}>
+              {t.notificationTimeDesc}
+            </Text>
+            <View style={styles.timePickerContainer}>
+              <TextInput
+                style={styles.timeInput}
+                value={notificationTime}
+                onChangeText={(text) => {
+                  // Проверяем формат HH:MM
+                  if (/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(text) || text === '' || /^([0-1]?[0-9]|2[0-3])$/.test(text)) {
+                    setNotificationTime(text);
+                  }
+                }}
+                placeholder="09:00"
+                placeholderTextColor={COLORS.darkText}
+                keyboardType="numeric"
+                maxLength={5}
+              />
+            </View>
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity
+                style={[styles.confirmModalButton, styles.confirmModalButtonCancel]}
+                onPress={() => setShowNotificationTimePicker(false)}
+              >
+                <Text style={styles.confirmModalButtonCancelText}>{t.cancel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmModalButton, styles.confirmModalButtonConfirm]}
+                onPress={() => {
+                  if (/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(notificationTime)) {
+                    setShowNotificationTimePicker(false);
+                  } else {
+                    Alert.alert(t.error, t.timeFormatError);
+                  }
+                }}
+              >
+                <Text style={styles.confirmModalButtonConfirmText}>{t.save}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Модальное окно выбора интервала уведомлений */}
+      <Modal
+        visible={showNotificationIntervalPicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowNotificationIntervalPicker(false)}
+      >
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <Text style={[styles.confirmModalTitle, { color: COLORS_THEME.lightText }]}>{t.reminderIntervalTitle}</Text>
+            <Text style={[styles.confirmModalText, { color: COLORS_THEME.darkText }]}>
+              {t.reminderIntervalDesc}
+            </Text>
+            <View style={styles.intervalPickerContainer}>
+              {[0, 1, 2, 3, 4, 6, 8, 12].map((hours) => (
+                <TouchableOpacity
+                  key={hours}
+                  style={[
+                    styles.intervalOption,
+                    { borderColor: COLORS_THEME.darkTeal },
+                    notificationInterval === hours && styles.intervalOptionActive,
+                    notificationInterval === hours && { backgroundColor: COLORS_THEME.darkTeal, borderColor: COLORS_THEME.orange },
+                  ]}
+                  onPress={() => {
+                    setNotificationInterval(hours);
+                    setShowNotificationIntervalPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.intervalOptionText,
+                      { color: COLORS_THEME.lightText },
+                      notificationInterval === hours && styles.intervalOptionTextActive,
+                      notificationInterval === hours && { color: COLORS_THEME.orange },
+                    ]}
+                  >
+                    {hours === 0 ? t.disabled : `${hours} ${t.hours}`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity
+                style={[styles.confirmModalButton, styles.confirmModalButtonCancel, { borderColor: COLORS_THEME.darkTeal }]}
+                onPress={() => setShowNotificationIntervalPicker(false)}
+              >
+                <Text style={[styles.confirmModalButtonCancelText, { color: COLORS_THEME.lightText }]}>{t.cancel}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Модальное окно импорта */}
+      <Modal
+        visible={showImportModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImportModal(false)}
+      >
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <Text style={styles.confirmModalTitle}>{t.import}</Text>
+            <Text style={styles.confirmModalText}>
+              Вставьте JSON данные для импорта
+            </Text>
+            <TextInput
+              style={styles.importInput}
+              multiline
+              value={importDataText}
+              onChangeText={setImportDataText}
+              placeholder={t.importPlaceholder}
+              placeholderTextColor={COLORS.darkText}
+            />
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity
+                style={[styles.confirmModalButton, styles.confirmModalButtonCancel]}
+                onPress={() => setShowImportModal(false)}
+              >
+                <Text style={styles.confirmModalButtonCancelText}>{t.cancel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmModalButton, styles.confirmModalButtonConfirm]}
+                onPress={() => {
+                  if (importDataText.trim()) {
+                    importData(importDataText);
+                    setImportDataText('');
+                    setShowImportModal(false);
+                  } else {
+                    Alert.alert(t.error, t.importError);
+                  }
+                }}
+              >
+                <Text style={styles.confirmModalButtonConfirmText}>{t.import}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Модальное окно подтверждения сброса сессии */}
       <Modal
         visible={showResetSessionConfirm}
@@ -1147,22 +2695,22 @@ export default function App() {
       >
         <View style={styles.confirmModalOverlay}>
           <View style={styles.confirmModalContent}>
-            <Text style={styles.confirmModalTitle}>Сброс сессии</Text>
-            <Text style={styles.confirmModalText}>
-              Вы уверены, что хотите сбросить текущую сессию?
+            <Text style={[styles.confirmModalTitle, { color: COLORS_THEME.lightText }]}>{t.resetSessionTitle}</Text>
+            <Text style={[styles.confirmModalText, { color: COLORS_THEME.darkText }]}>
+              {t.resetSessionConfirm}
             </Text>
             <View style={styles.confirmModalButtons}>
               <TouchableOpacity
-                style={[styles.confirmModalButton, styles.confirmModalButtonCancel]}
+                style={[styles.confirmModalButton, styles.confirmModalButtonCancel, { borderColor: COLORS_THEME.darkTeal }]}
                 onPress={() => setShowResetSessionConfirm(false)}
               >
-                <Text style={styles.confirmModalButtonCancelText}>Отмена</Text>
+                <Text style={[styles.confirmModalButtonCancelText, { color: COLORS_THEME.lightText }]}>Отмена</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.confirmModalButton, styles.confirmModalButtonConfirm]}
+                style={[styles.confirmModalButton, styles.confirmModalButtonConfirm, { backgroundColor: COLORS_THEME.darkTeal }]}
                 onPress={confirmResetSession}
               >
-                <Text style={styles.confirmModalButtonConfirmText}>Сбросить</Text>
+                <Text style={[styles.confirmModalButtonConfirmText, { color: COLORS_THEME.lightText }]}>{t.reset}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1178,22 +2726,22 @@ export default function App() {
       >
         <View style={styles.confirmModalOverlay}>
           <View style={styles.confirmModalContent}>
-            <Text style={styles.confirmModalTitle}>Сброс всех данных</Text>
-            <Text style={styles.confirmModalText}>
-              Вы уверены, что хотите сбросить все данные? Это действие нельзя отменить.
+            <Text style={[styles.confirmModalTitle, { color: COLORS_THEME.lightText }]}>{t.resetAllTitle}</Text>
+            <Text style={[styles.confirmModalText, { color: COLORS_THEME.darkText }]}>
+              {t.resetAllConfirm}
             </Text>
             <View style={styles.confirmModalButtons}>
               <TouchableOpacity
-                style={[styles.confirmModalButton, styles.confirmModalButtonCancel]}
+                style={[styles.confirmModalButton, styles.confirmModalButtonCancel, { borderColor: COLORS_THEME.darkTeal }]}
                 onPress={() => setShowResetAllConfirm(false)}
               >
-                <Text style={styles.confirmModalButtonCancelText}>Отмена</Text>
+                <Text style={[styles.confirmModalButtonCancelText, { color: COLORS_THEME.lightText }]}>Отмена</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.confirmModalButton, styles.confirmModalButtonDanger]}
                 onPress={confirmResetAll}
               >
-                <Text style={styles.confirmModalButtonDangerText}>Сбросить</Text>
+                <Text style={styles.confirmModalButtonDangerText}>{t.reset}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1209,22 +2757,22 @@ export default function App() {
       >
         <View style={styles.confirmModalOverlay}>
           <View style={styles.confirmModalContent}>
-            <Text style={styles.confirmModalTitle}>Подтверждение</Text>
-            <Text style={styles.confirmModalText}>
-              Это удалит ВСЕ данные. Вы абсолютно уверены?
+            <Text style={[styles.confirmModalTitle, { color: COLORS_THEME.lightText }]}>{t.confirmation}</Text>
+            <Text style={[styles.confirmModalText, { color: COLORS_THEME.darkText }]}>
+              {t.resetAllConfirm2}
             </Text>
             <View style={styles.confirmModalButtons}>
               <TouchableOpacity
-                style={[styles.confirmModalButton, styles.confirmModalButtonCancel]}
+                style={[styles.confirmModalButton, styles.confirmModalButtonCancel, { borderColor: COLORS_THEME.darkTeal }]}
                 onPress={() => setShowResetAllConfirm2(false)}
               >
-                <Text style={styles.confirmModalButtonCancelText}>Отмена</Text>
+                <Text style={[styles.confirmModalButtonCancelText, { color: COLORS_THEME.lightText }]}>Отмена</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.confirmModalButton, styles.confirmModalButtonDanger]}
                 onPress={confirmResetAll2}
               >
-                <Text style={styles.confirmModalButtonDangerText}>Сбросить</Text>
+                <Text style={styles.confirmModalButtonDangerText}>{t.reset}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1323,7 +2871,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
     padding: 24,
-    paddingTop: 16,
+    paddingTop: Platform.OS === 'ios' ? 70 : 16, // 16 + 25 + 29 = 70 для iOS
     justifyContent: 'flex-start',
     alignItems: 'center',
     position: 'relative',
@@ -1419,6 +2967,20 @@ const styles = StyleSheet.create({
   counterLabel: {
     fontSize: 16,
     color: COLORS.darkText,
+  },
+  sessionInfo: {
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  sessionTime: {
+    fontSize: 14,
+    color: COLORS.darkTeal,
+    fontWeight: '600',
+  },
+  sessionSpeed: {
+    fontSize: 12,
+    color: COLORS.darkText,
+    marginTop: 4,
   },
   todayStats: {
     width: '100%',
@@ -1678,6 +3240,7 @@ const styles = StyleSheet.create({
   },
   historyScrollContent: {
     padding: 24,
+    paddingTop: Platform.OS === 'ios' ? 75 : 24, // 24 + 25 + 26 = 75 для iOS
   },
   screenTitle: {
     fontSize: 28,
@@ -1731,6 +3294,7 @@ const styles = StyleSheet.create({
   },
   statsScrollContent: {
     padding: 24,
+    paddingTop: Platform.OS === 'ios' ? 75 : 24, // 24 + 25 + 26 = 75 для iOS
   },
   statsContainer: {
     gap: 16,
@@ -1769,6 +3333,7 @@ const styles = StyleSheet.create({
   },
   settingsScrollContent: {
     padding: 24,
+    paddingTop: Platform.OS === 'ios' ? 75 : 24, // 24 + 25 + 26 = 75 для iOS
     paddingBottom: Platform.OS === 'web' ? 20 : 100,
   },
   settingsSection: {
@@ -2036,5 +3601,247 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '700',
     lineHeight: 72,
+  },
+  chartSection: {
+    backgroundColor: 'rgba(5, 42, 36, 0.75)',
+    borderRadius: 20,
+    padding: 20,
+    marginTop: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.darkTeal,
+  },
+  chartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  chartTitle: {
+    fontSize: 18,
+    color: COLORS.lightText,
+    fontWeight: '700',
+  },
+  chartPeriodSelector: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chartPeriodButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#052a24',
+    borderWidth: 1,
+    borderColor: COLORS.darkTeal,
+  },
+  chartPeriodButtonActive: {
+    backgroundColor: COLORS.darkTeal,
+  },
+  chartPeriodText: {
+    fontSize: 12,
+    color: COLORS.darkText,
+    fontWeight: '600',
+  },
+  chartPeriodTextActive: {
+    color: COLORS.lightText,
+  },
+  chartContainer: {
+    alignItems: 'center',
+  },
+  chartLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 8,
+  },
+  chartLabel: {
+    fontSize: 10,
+    color: COLORS.darkText,
+    flex: 1,
+    textAlign: 'center',
+  },
+  byTypeSection: {
+    marginTop: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    color: COLORS.lightText,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  typeStatItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(5, 42, 36, 0.75)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.darkTeal,
+  },
+  typeStatName: {
+    fontSize: 16,
+    color: COLORS.lightText,
+    fontWeight: '500',
+  },
+  typeStatValue: {
+    fontSize: 18,
+    color: COLORS.orange,
+    fontWeight: '700',
+  },
+  themeOption: {
+    backgroundColor: 'rgba(5, 42, 36, 0.75)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.darkTeal,
+  },
+  themeOptionActive: {
+    backgroundColor: COLORS.darkTeal,
+    borderColor: COLORS.orange,
+  },
+  themeOptionText: {
+    fontSize: 16,
+    color: COLORS.lightText,
+    fontWeight: '500',
+  },
+  themeOptionTextActive: {
+    color: COLORS.orange,
+    fontWeight: '700',
+  },
+  languageOption: {
+    backgroundColor: 'rgba(5, 42, 36, 0.75)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.darkTeal,
+  },
+  languageOptionActive: {
+    backgroundColor: COLORS.darkTeal,
+    borderColor: COLORS.orange,
+  },
+  languageOptionText: {
+    fontSize: 16,
+    color: COLORS.lightText,
+    fontWeight: '500',
+  },
+  languageOptionTextActive: {
+    color: COLORS.orange,
+    fontWeight: '700',
+  },
+  achievementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(5, 42, 36, 0.75)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.darkTeal,
+  },
+  achievementItemLocked: {
+    opacity: 0.5,
+  },
+  achievementIcon: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  achievementContent: {
+    flex: 1,
+  },
+  achievementName: {
+    fontSize: 16,
+    color: COLORS.lightText,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  achievementDescription: {
+    fontSize: 12,
+    color: COLORS.darkText,
+  },
+  achievementCheck: {
+    fontSize: 24,
+    color: COLORS.orange,
+    fontWeight: '700',
+  },
+  importInput: {
+    backgroundColor: '#052a24',
+    borderRadius: 12,
+    padding: 12,
+    color: COLORS.lightText,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: COLORS.darkTeal,
+    minHeight: 100,
+    marginBottom: 16,
+    textAlignVertical: 'top',
+  },
+  timeButton: {
+    backgroundColor: COLORS.darkTeal,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  timeButtonText: {
+    color: COLORS.lightText,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  intervalButton: {
+    backgroundColor: COLORS.darkTeal,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  intervalButtonText: {
+    color: COLORS.lightText,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  timePickerContainer: {
+    marginBottom: 16,
+  },
+  timeInput: {
+    backgroundColor: '#052a24',
+    borderRadius: 12,
+    padding: 16,
+    color: COLORS.lightText,
+    fontSize: 24,
+    fontWeight: '700',
+    borderWidth: 1,
+    borderColor: COLORS.darkTeal,
+    textAlign: 'center',
+  },
+  intervalPickerContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  intervalOption: {
+    backgroundColor: '#052a24',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: COLORS.darkTeal,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  intervalOptionActive: {
+    backgroundColor: COLORS.darkTeal,
+    borderColor: COLORS.orange,
+  },
+  intervalOptionText: {
+    fontSize: 14,
+    color: COLORS.lightText,
+    fontWeight: '500',
+  },
+  intervalOptionTextActive: {
+    color: COLORS.orange,
+    fontWeight: '700',
   },
 });

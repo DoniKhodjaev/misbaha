@@ -12,7 +12,9 @@
     "build:ios": "eas build --platform ios",
     "build:all": "eas build --platform all",
     "build:web": "npx expo export -p web && node scripts/fix-paths.js",
-    "serve:web": "npx serve dist -p 3000"
+    "build:netlify": "node scripts/build-netlify.js",
+    "serve:web": "npx serve dist -p 3000",
+    "bot": "node telegram-bot.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -21,6 +23,7 @@
     "expo-av": "~15.0.1",
     "expo-blur": "^15.0.7",
     "expo-linear-gradient": "^15.0.7",
+    "expo-notifications": "~0.32.12",
     "expo-status-bar": "~3.0.8",
     "react": "19.1.0",
     "react-dom": "^19.1.0",
@@ -31,6 +34,9 @@
   "devDependencies": {
     "@babel/core": "^7.25.0",
     "babel-preset-expo": "~54.0.0"
+  },
+  "optionalDependencies": {
+    "node-telegram-bot-api": "^0.64.0"
   },
   "private": true
 }

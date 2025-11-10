@@ -1,0 +1,36 @@
+<!-- misbaha-hero-1920x1080.svg -->
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg1" cx="15%" cy="0%" r="60%">
+      <stop offset="0" stop-color="#22C55E" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#0A3A34" stop-opacity="1"/>
+    </radialGradient>
+    <radialGradient id="bg2" cx="85%" cy="15%" r="55%">
+      <stop offset="0" stop-color="#9AE6B4" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#0A3A34" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="rgba(255,255,255,.10)"/>
+      <stop offset="1" stop-color="rgba(255,255,255,.06)"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#bg1)"/>
+  <rect width="1920" height="1080" fill="url(#bg2)"/>
+  <!-- звёзды -->
+  <g fill="#BFF7D0" opacity=".25">
+    <circle cx="200" cy="180" r="2"/><circle cx="380" cy="120" r="2"/><circle cx="940" cy="140" r="2"/>
+    <circle cx="1650" cy="210" r="2"/><circle cx="1500" cy="90" r="2"/><circle cx="1200" cy="260" r="2"/>
+  </g>
+  <!-- силует мечети -->
+  <g fill="#0E4A41" opacity=".6">
+    <path d="M0 880h1920v200H0z"/>
+    <path d="M200 880h180v-80l30-20 30 20v80h140v-160h60v160h120v-120l40-28 40 28v120h120v-200h70v200h160v-150l50-35 50 35v150h200v-120l40-25 40 25v120h200" />
+  </g>
+  <!-- стеклянная карточка для заголовка -->
+  <rect x="320" y="180" rx="28" ry="28" width="1280" height="220"
+        fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>
+  <text x="960" y="270" text-anchor="middle" font-family="Manrope, Inter, system-ui"
+        font-size="64" fill="#F4C95D" font-weight="800">Счётчик Зикра — Misbaha</text>
+  <text x="960" y="330" text-anchor="middle" font-family="Inter, system-ui"
+        font-size="30" fill="rgba(255,255,255,.9)">Спокойный ритм. Чистое намерение. Красивая статистика.</text>
+</svg>
