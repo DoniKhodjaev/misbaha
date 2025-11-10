@@ -2600,7 +2600,9 @@ export default function App() {
                 value={notificationTime}
                 onChangeText={(text) => {
                   // Проверяем формат HH:MM
-                  if (/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(text) || text === '' || /^([0-1]?[0-9]|2[0-3])$/.test(text)) {
+                  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+                  const partialTimeRegex = /^([0-1]?[0-9]|2[0-3])$/;
+                  if (timeRegex.test(text) || text === '' || partialTimeRegex.test(text)) {
                     setNotificationTime(text);
                   }
                 }}
@@ -2620,7 +2622,8 @@ export default function App() {
               <TouchableOpacity
                 style={[styles.confirmModalButton, styles.confirmModalButtonConfirm]}
                 onPress={() => {
-                  if (/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(notificationTime)) {
+                  const timeFormatRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+                  if (timeFormatRegex.test(notificationTime)) {
                     setShowNotificationTimePicker(false);
                   } else {
                     Alert.alert(t.error, t.timeFormatError);
