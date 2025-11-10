@@ -595,6 +595,7 @@ export default function App() {
     if (user) {
       setTelegramUser(user);
       console.log('Telegram user:', user);
+      console.log('Telegram HapticFeedback доступен:', !!tg.HapticFeedback);
       
       // Автоматический выбор языка на основе языка Telegram
       if (user.language_code) {
@@ -612,6 +613,18 @@ export default function App() {
           console.log(`Язык автоматически выбран: ${detectedLang} (из ${user.language_code})`);
         }
       }
+    }
+    
+    // Тест вибрации при инициализации (только один раз)
+    if (tg.HapticFeedback && vibrationEnabled) {
+      setTimeout(() => {
+        try {
+          tg.HapticFeedback.impactOccurred('light');
+          console.log('✅ Тест вибрации: успешно');
+        } catch (error) {
+          console.error('❌ Тест вибрации: ошибка', error);
+        }
+      }, 1000);
     }
     
     // Обработчик события закрытия Mini App - отправляем данные
@@ -648,21 +661,36 @@ export default function App() {
     if (!vibrationEnabled) return;
     
     // Если запущено в Telegram, используем Haptic Feedback
-    if (isTelegram() && telegramWebAppRef.current?.HapticFeedback) {
-      const haptic = telegramWebAppRef.current.HapticFeedback;
+    if (isTelegram()) {
+      const tg = telegramWebAppRef.current || (typeof window !== 'undefined' ? window.Telegram?.WebApp : null);
       
-      if (typeof pattern === 'number') {
-        // Простая вибрация
-        haptic.impactOccurred('light');
-      } else if (Array.isArray(pattern)) {
-        // Сложная вибрация - используем medium для массива
-        haptic.impactOccurred('medium');
-        // Для специальных случаев (каждые 33 зикра)
-        if (pattern.length > 2) {
-          setTimeout(() => haptic.notificationOccurred('success'), 100);
+      if (tg?.HapticFeedback) {
+        const haptic = tg.HapticFeedback;
+        
+        try {
+          if (typeof pattern === 'number') {
+            // Простая вибрация
+            haptic.impactOccurred('light');
+            console.log('📳 Telegram Haptic: light');
+          } else if (Array.isArray(pattern)) {
+            // Сложная вибрация - используем medium для массива
+            haptic.impactOccurred('medium');
+            console.log('📳 Telegram Haptic: medium');
+            // Для специальных случаев (каждые 33 зикра)
+            if (pattern.length > 2) {
+              setTimeout(() => {
+                haptic.notificationOccurred('success');
+                console.log('📳 Telegram Haptic: success');
+              }, 100);
+            }
+          }
+          return;
+        } catch (error) {
+          console.error('Ошибка Telegram Haptic Feedback:', error);
         }
+      } else {
+        console.warn('⚠️ Telegram HapticFeedback недоступен');
       }
-      return;
     }
     
     // Fallback на обычную вибрацию
@@ -960,6 +988,9 @@ export default function App() {
 
       if (savedVibration !== null) {
         setVibrationEnabled(savedVibration === 'true');
+      } else {
+        // По умолчанию вибрация включена
+        setVibrationEnabled(true);
       }
 
       if (savedCounts !== null) {
@@ -1172,14 +1203,18 @@ export default function App() {
     
     animateButton();
     
+    // Вибрация - вызываем сразу, без задержки
     if (vibrationEnabled) {
-      // Вызываем вибрацию сразу после пользовательского действия
-      setTimeout(() => {
-        vibrate(50);
-        if (newCount % 33 === 0) {
-          setTimeout(() => vibrate([100, 50, 100]), 100);
-        }
-      }, 0);
+      // Вызываем вибрацию сразу при пользовательском действии
+      vibrate(50);
+      
+      // Специальная вибрация каждые 33 зикра
+      if (newCount % 33 === 0) {
+        // Используем небольшую задержку для второй вибрации
+        setTimeout(() => {
+          vibrate([100, 50, 100]);
+        }, 150);
+      }
     }
 
     if (newTotal === dailyGoal) {
@@ -2027,6 +2062,19 @@ export default function App() {
             <View style={[styles.toggleThumb, vibrationEnabled && styles.toggleThumbActive]} />
           </TouchableOpacity>
         </View>
+        
+        {/* Тест вибрации - только в Telegram и если вибрация включена */}
+        {isTelegram() && vibrationEnabled && (
+          <TouchableOpacity
+            style={[styles.actionButton, { borderColor: COLORS_THEME.darkTeal, marginTop: 8 }]}
+            onPress={() => {
+              vibrate(50);
+              Alert.alert('📳', 'Вибрация отправлена! Если не почувствовали, проверьте настройки устройства.');
+            }}
+          >
+            <Text style={[styles.actionButtonText, { color: COLORS_THEME.lightText }]}>📳 Тест вибрации</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={[styles.settingItem, { borderColor: COLORS_THEME.darkTeal }]}>
           <View style={styles.settingItemLeft}>
