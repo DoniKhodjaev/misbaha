@@ -21,17 +21,19 @@ function fixPathsInFile(filePath) {
   content = content.replace(/\/assets\/assets\//g, '/misbaha/assets/assets/');
   
   // Затем заменяем прямые пути без кавычек (но не те, что уже начинаются с /misbaha)
-  content = content.replace(/\/(?!misbaha\/)assets\//g, '/misbaha/assets/');
-  content = content.replace(/\/(?!misbaha\/)_expo\//g, '/misbaha/_expo/');
-  content = content.replace(/\/(?!misbaha\/)favicon\.ico/g, '/misbaha/favicon.ico');
+  // Исключаем регулярные выражения (паттерны вида /pattern/flags)
+  content = content.replace(/\/(?!misbaha\/)(?!\/)(?![^\/]*\/[gimsuvy]*\s*[;,\)\]\}])assets\//g, '/misbaha/assets/');
+  content = content.replace(/\/(?!misbaha\/)(?!\/)(?![^\/]*\/[gimsuvy]*\s*[;,\)\]\}])_expo\//g, '/misbaha/_expo/');
+  content = content.replace(/\/(?!misbaha\/)(?!\/)(?![^\/]*\/[gimsuvy]*\s*[;,\)\]\}])favicon\.ico/g, '/misbaha/favicon.ico');
   
   // Затем заменяем пути в кавычках
   // Обрабатываем пути в одинарных, двойных кавычках и обратных кавычках
+  // ВАЖНО: Исключаем регулярные выражения внутри кода
   const patterns = [
-    // Одинарные и двойные кавычки
-    /(['"])\/(?!misbaha\/)(?!https?:\/\/)([^"'?#]+)\1/g,
+    // Одинарные и двойные кавычки (но не регулярные выражения)
+    /(['"])\/(?!misbaha\/)(?!https?:\/\/)(?!\/)([^"'?#]+)\1(?![gimsuvy]*\s*[;,\)\]\}])/g,
     // Обратные кавычки
-    /(`)\/(?!misbaha\/)(?!https?:\/\/)([^`?#]+)\1/g,
+    /(`)\/(?!misbaha\/)(?!https?:\/\/)(?!\/)([^`?#]+)\1/g,
   ];
   
   for (const pattern of patterns) {
@@ -42,6 +44,11 @@ function fixPathsInFile(filePath) {
       }
       // Пропускаем пути, которые уже начинаются с /misbaha
       if (filePath.startsWith('misbaha/')) {
+        return match;
+      }
+      // Пропускаем регулярные выражения (если после кавычки идут флаги regex)
+      const afterMatch = match.substring(match.indexOf(filePath) + filePath.length + 1);
+      if (/^[gimsuvy]*\s*[;,\)\]\}]/.test(afterMatch)) {
         return match;
       }
       // Определяем тип кавычки
