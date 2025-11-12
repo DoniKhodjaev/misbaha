@@ -19,10 +19,19 @@ function fixPathsInFile(filePath) {
   // ВАЖНО: Обрабатываем только явные пути к файлам в строках
   // Игнорируем регулярные выражения полностью
   
-  // 1. Исправляем пути в строках с расширениями файлов (явные пути к ресурсам)
-  // Ищем только строки в кавычках, которые заканчиваются на расширения файлов
-  // Это гарантирует, что мы не трогаем регулярные выражения
+  // 1. Исправляем пути в HTML-атрибутах (src, href) - ПЕРВЫМ ДЕЛОМ
+  // Это самый безопасный способ, так как мы точно знаем контекст
+  content = content.replace(/(src|href)=(["'])\/(?!misbaha\/)(?!https?:\/\/)((?:assets|_expo|favicon)[^"']*)\2/gi, 
+    (match, attr, quote, fullPath) => {
+      if (match.includes('/misbaha/')) {
+        return match;
+      }
+      // Сохраняем полный путь как есть
+      return `${attr}=${quote}/misbaha/${fullPath}${quote}`;
+    }
+  );
   
+  // 2. Исправляем пути в строках с расширениями файлов (явные пути к ресурсам)
   // Обрабатываем пути в одинарных кавычках (с поддержкой поддиректорий)
   content = content.replace(/(['"])\/(?!misbaha\/)(?!https?:\/\/)((?:assets|_expo|favicon)[^'"]*\.(?:js|css|png|jpg|jpeg|gif|svg|ico|mp3|woff|ttf|woff2))\1/g, 
     (match, quote, fullPath) => {
@@ -35,7 +44,7 @@ function fixPathsInFile(filePath) {
     }
   );
   
-  // Обрабатываем пути в обратных кавычках (только для явных путей к файлам)
+  // 3. Обрабатываем пути в обратных кавычках (только для явных путей к файлам)
   content = content.replace(/(`)\/(?!misbaha\/)(?!https?:\/\/)((?:assets|_expo|favicon)[^`]*\.(?:js|css|png|jpg|jpeg|gif|svg|ico|mp3|woff|ttf|woff2))\1/g,
     (match, quote, fullPath) => {
       if (match.includes('/misbaha/')) {
@@ -45,7 +54,7 @@ function fixPathsInFile(filePath) {
     }
   );
   
-  // 2. Исправляем пути без расширений (только для известных директорий)
+  // 4. Исправляем пути без расширений (только для известных директорий)
   // Только в кавычках и только для известных путей
   content = content.replace(/(['"])\/(?!misbaha\/)(?!https?:\/\/)(assets\/|_expo\/|favicon\.ico)\1/g,
     (match, quote, pathPart) => {
@@ -56,34 +65,14 @@ function fixPathsInFile(filePath) {
     }
   );
   
-  // 3. Исправляем двойные пути типа /assets/assets/
+  // 5. Исправляем двойные пути типа /assets/assets/
   content = content.replace(/\/assets\/assets\//g, '/misbaha/assets/assets/');
   
-  // 4. Исправляем пути в HTML-атрибутах (src, href)
-  // Обрабатываем полные пути с поддиректориями
-  content = content.replace(/(src|href)=(["'])\/(?!misbaha\/)(?!https?:\/\/)((?:assets|_expo|favicon)[^"']*\.(?:js|css|png|jpg|jpeg|gif|svg|ico|mp3|woff|ttf|woff2))\2/gi, 
-    (match, attr, quote, fullPath) => {
-      if (match.includes('/misbaha/')) {
-        return match;
-      }
-      return `${attr}=${quote}/misbaha/${fullPath}${quote}`;
-    }
-  );
-  
-  // 5. Исправляем favicon.ico (особый случай)
-  content = content.replace(/(['"])\/(?!misbaha\/)(?!https?:\/\/)favicon\.ico\1/g,
-    (match, quote) => {
-      if (match.includes('/misbaha/')) {
-        return match;
-      }
-      return `${quote}/misbaha/favicon.ico${quote}`;
-    }
-  );
-  
-  // Исправляем неправильно замененные пути
+  // Исправляем неправильно замененные пути (восстанавливаем слеши и точки)
   content = content.replace(/\/misbaha([_a-zA-Z])/g, '/misbaha/$1');
   content = content.replace(/\/misbahafavicon/g, '/misbaha/favicon');
   content = content.replace(/faviconico/g, 'favicon.ico');
+  content = content.replace(/\/misbaha\/_expojs/g, '/misbaha/_expo/static/js/web/AppEntry-7be7eff48eb1fe14aebef2f001e42a1c.js');
   
   // Исправляем дублирование префикса
   content = content.replace(/\/misbaha\/misbaha\//g, '/misbaha/');
