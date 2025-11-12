@@ -557,6 +557,7 @@ export default function App() {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const audioSoundRef = React.useRef(null);
   const sessionTimerRef = React.useRef(null);
+  const bismillahPlayedRef = React.useRef(false); // Флаг для отслеживания воспроизведения Бисмиллах
   const COLORS_THEME = THEMES[currentTheme] || THEMES.default;
   
   // Telegram интеграция
@@ -838,8 +839,12 @@ export default function App() {
       // Загружаем данные
       await loadData();
       
-      // Воспроизводим звук Бисмиллах
-      await playBismillah();
+      // НЕ воспроизводим звук Бисмиллах автоматически для веба
+      // Браузеры блокируют автовоспроизведение без взаимодействия пользователя
+      // Звук будет воспроизведен при первом взаимодействии пользователя (первый зикр)
+      if (Platform.OS !== 'web') {
+        await playBismillah();
+      }
       
       // Персонализированное приветствие для Telegram пользователей
       if (telegramUser && isTelegram()) {
@@ -1207,6 +1212,12 @@ export default function App() {
     setTodayCounts(newTodayCounts);
     
     animateButton();
+    
+    // Воспроизводим звук Бисмиллах при первом взаимодействии пользователя (для веба)
+    if (Platform.OS === 'web' && soundsEnabled && !bismillahPlayedRef.current) {
+      bismillahPlayedRef.current = true;
+      playBismillah();
+    }
     
     // Вибрация - вызываем сразу, без задержки
     if (vibrationEnabled) {
