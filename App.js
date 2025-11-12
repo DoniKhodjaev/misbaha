@@ -558,7 +558,6 @@ export default function App() {
   const audioSoundRef = React.useRef(null);
   const sessionTimerRef = React.useRef(null);
   const bismillahPlayedRef = React.useRef(false); // Флаг для отслеживания воспроизведения Бисмиллах
-  const playBismillahRef = React.useRef(null); // Ref для хранения функции playBismillah
   const COLORS_THEME = THEMES[currentTheme] || THEMES.default;
   
   // Telegram интеграция
@@ -568,6 +567,7 @@ export default function App() {
 
   // Определяем playBismillah СРАЗУ после всех refs, используя useCallback с пустым массивом зависимостей
   // Это гарантирует, что функция определена до всех useEffect и других функций
+  // НЕ сохраняем в ref во время рендера, чтобы избежать проблем с порядком инициализации
   const playBismillah = useCallback(async () => {
     try {
       if (Platform.OS === 'web') {
@@ -624,9 +624,6 @@ export default function App() {
       console.error('Ошибка воспроизведения звука:', error);
     }
   }, []); // Пустой массив зависимостей - функция не зависит от состояния компонента
-  
-  // Сохраняем функцию в ref для совместимости
-  playBismillahRef.current = playBismillah;
 
   // Проверка, запущено ли в Telegram
   const isTelegram = () => {
