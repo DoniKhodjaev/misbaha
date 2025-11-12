@@ -823,14 +823,7 @@ export default function App() {
     }
   }, []);
 
-  // Инициализация Telegram при загрузке
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      initTelegramWebApp();
-    }
-  }, []);
-
-  // Определяем playBismillah как обычную функцию, чтобы избежать проблем с порядком инициализации
+  // Определяем playBismillah как обычную функцию ДО всех useEffect, чтобы избежать проблем с порядком инициализации
   const playBismillah = async () => {
     try {
       if (Platform.OS === 'web') {
@@ -888,10 +881,15 @@ export default function App() {
     }
   };
   
-  // Сохраняем функцию в ref через useEffect для избежания проблем с порядком инициализации
+  // Сохраняем функцию в ref сразу после определения (без useEffect)
+  playBismillahRef.current = playBismillah;
+
+  // Инициализация Telegram при загрузке
   useEffect(() => {
-    playBismillahRef.current = playBismillah;
-  });
+    if (Platform.OS === 'web') {
+      initTelegramWebApp();
+    }
+  }, []);
 
   // Загрузка сохраненных данных при запуске
   useEffect(() => {
@@ -906,8 +904,8 @@ export default function App() {
       // НЕ воспроизводим звук Бисмиллах автоматически для веба
       // Браузеры блокируют автовоспроизведение без взаимодействия пользователя
       // Звук будет воспроизведен при первом взаимодействии пользователя (первый зикр)
-      if (Platform.OS !== 'web' && playBismillahRef.current) {
-        await playBismillahRef.current();
+      if (Platform.OS !== 'web') {
+        await playBismillah();
       }
       
       // Персонализированное приветствие для Telegram пользователей
@@ -1224,9 +1222,7 @@ export default function App() {
     // Воспроизводим звук Бисмиллах при первом взаимодействии пользователя (для веба)
     if (Platform.OS === 'web' && soundsEnabled && !bismillahPlayedRef.current) {
       bismillahPlayedRef.current = true;
-      if (playBismillahRef.current) {
-        playBismillahRef.current();
-      }
+      playBismillah();
     }
     
     // Вибрация - вызываем сразу, без задержки
