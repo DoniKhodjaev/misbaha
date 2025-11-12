@@ -868,21 +868,26 @@ export default function App() {
   const playBismillah = async () => {
     try {
       if (Platform.OS === 'web') {
-        // Для веба используем HTML5 Audio API
+        // Для веба используем HTML5 Audio API (нативный браузерный Audio)
         try {
           // На вебе используем публичный путь к аудио файлу
           const audioPath = '/misbaha/assets/assets/bismillah.mp3';
-          const audio = new Audio(audioPath);
-          audio.volume = 0.7;
-          
-          // Пытаемся воспроизвести, но если автовоспроизведение заблокировано, это нормально
-          const playPromise = audio.play();
-          if (playPromise !== undefined) {
-            playPromise.catch(error => {
-              console.log('Аудио не может быть воспроизведено автоматически:', error);
-              // На вебе автовоспроизведение может быть заблокировано браузером
-              // Это нормально для iOS Safari
-            });
+          // Используем нативный браузерный Audio напрямую через window
+          if (typeof window !== 'undefined' && window.Audio) {
+            const audio = new window.Audio(audioPath);
+            audio.volume = 0.7;
+            
+            // Пытаемся воспроизвести, но если автовоспроизведение заблокировано, это нормально
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(error => {
+                console.log('Аудио не может быть воспроизведено автоматически:', error);
+                // На вебе автовоспроизведение может быть заблокировано браузером
+                // Это нормально для iOS Safari
+              });
+            }
+          } else {
+            console.log('HTML5 Audio API не поддерживается в этом браузере');
           }
         } catch (audioError) {
           console.log('Аудио файл не найден для веба:', audioError);

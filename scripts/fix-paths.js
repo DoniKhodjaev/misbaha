@@ -90,19 +90,29 @@ if (htmlFixed) {
   console.log('✅ Fixed paths in index.html');
 }
 
-// Копируем иконку в dist (всегда, чтобы она была актуальной)
+// Копируем иконку и аудио файл в dist (всегда, чтобы они были актуальными)
 const iconSourcePath = path.join(__dirname, '..', 'assets', 'ico.png');
 const iconDestPath = path.join(distPath, 'assets', 'assets', 'ico.png');
+const audioSourcePath = path.join(__dirname, '..', 'assets', 'bismillah.mp3');
+const audioDestPath = path.join(distPath, 'assets', 'assets', 'bismillah.mp3');
 const iconDestDir = path.join(distPath, 'assets', 'assets');
 
+if (!fs.existsSync(iconDestDir)) {
+  fs.mkdirSync(iconDestDir, { recursive: true });
+}
+
 if (fs.existsSync(iconSourcePath)) {
-  if (!fs.existsSync(iconDestDir)) {
-    fs.mkdirSync(iconDestDir, { recursive: true });
-  }
   fs.copyFileSync(iconSourcePath, iconDestPath);
   console.log('✅ Copied ico.png to dist/assets/assets/');
 } else {
   console.warn('⚠️  Warning: ico.png not found in assets folder');
+}
+
+if (fs.existsSync(audioSourcePath)) {
+  fs.copyFileSync(audioSourcePath, audioDestPath);
+  console.log('✅ Copied bismillah.mp3 to dist/assets/assets/');
+} else {
+  console.warn('⚠️  Warning: bismillah.mp3 not found in assets folder');
 }
 
 // Добавляем мета-теги для iOS PWA
