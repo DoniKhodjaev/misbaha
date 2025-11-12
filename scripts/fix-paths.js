@@ -11,65 +11,32 @@ if (!fs.existsSync(indexPath)) {
 
 console.log('🔍 Fixing paths for GitHub Pages...');
 
-// Функция для замены путей в файле
-function fixPathsInFile(filePath) {
+// Функция для замены путей ТОЛЬКО в HTML файлах
+function fixPathsInHtml(filePath) {
   let content = fs.readFileSync(filePath, 'utf8');
   const originalContent = content;
   
-  // ВАЖНО: Обрабатываем только строки в кавычках, которые явно являются путями к файлам
-  // Игнорируем регулярные выражения полностью
-  
-  // 1. Исправляем пути в строках с расширениями файлов (явные пути к ресурсам)
-  const fileExtensions = ['\\.js', '\\.css', '\\.png', '\\.jpg', '\\.jpeg', '\\.gif', '\\.svg', '\\.ico', '\\.mp3', '\\.woff', '\\.ttf', '\\.woff2'];
-  const filePathPattern = fileExtensions.join('|');
-  
-  // Обрабатываем пути в кавычках, которые заканчиваются на расширения файлов
-  // Это гарантирует, что мы не трогаем регулярные выражения
-  const pathPatterns = [
-    // Одинарные кавычки с путями к файлам
-    /(['"])\/(?!misbaha\/)(?!https?:\/\/)(assets|_expo|favicon)[^'"]*\.(js|css|png|jpg|jpeg|gif|svg|ico|mp3|woff|ttf|woff2)(['"])/gi,
-    // Двойные кавычки с путями к файлам
-    // Обратные кавычки (только для явных путей)
-    /(`)\/(?!misbaha\/)(?!https?:\/\/)(assets|_expo|favicon)[^`]*\.(js|css|png|jpg|jpeg|gif|svg|ico|mp3|woff|ttf|woff2)(`)/gi,
-  ];
-  
-  for (const pattern of pathPatterns) {
-    content = content.replace(pattern, (match, quote1, pathPart, ext, quote2) => {
-      // Пропускаем, если это уже правильный путь
-      if (match.includes('/misbaha/')) {
-        return match;
-      }
-      // Заменяем путь
-      return `${quote1}/misbaha/${pathPart}${ext}${quote2}`;
-    });
-  }
-  
-  // 2. Исправляем пути без расширений (только для известных директорий)
-  // Очень осторожно, чтобы не затронуть регулярные выражения
-  const dirPatterns = [
-    // Пути к директориям в кавычках
-    /(['"])\/(?!misbaha\/)(?!https?:\/\/)(assets\/|_expo\/|favicon\.ico)(['"])/gi,
-  ];
-  
-  for (const pattern of dirPatterns) {
-    content = content.replace(pattern, (match, quote1, pathPart, quote2) => {
-      if (match.includes('/misbaha/')) {
-        return match;
-      }
-      return `${quote1}/misbaha/${pathPart}${quote2}`;
-    });
-  }
-  
-  // 3. Исправляем двойные пути типа /assets/assets/
-  content = content.replace(/\/assets\/assets\//g, '/misbaha/assets/assets/');
-  
-  // 4. Исправляем пути в HTML-атрибутах (src, href)
+  // Исправляем пути в HTML-атрибутах (src, href)
+  // Только для явных путей к файлам
   content = content.replace(/(src|href)=(["'])\/(?!misbaha\/)(?!https?:\/\/)(assets|_expo|favicon)[^"']*\.(js|css|png|jpg|jpeg|gif|svg|ico|mp3|woff|ttf|woff2)\2/gi, 
     (match, attr, quote, pathPart, ext) => {
       if (match.includes('/misbaha/')) {
         return match;
       }
       return `${attr}=${quote}/misbaha/${pathPart}${ext}${quote}`;
+    }
+  );
+  
+  // Исправляем двойные пути типа /assets/assets/
+  content = content.replace(/\/assets\/assets\//g, '/misbaha/assets/assets/');
+  
+  // Исправляем пути к директориям в HTML
+  content = content.replace(/(src|href)=(["'])\/(?!misbaha\/)(?!https?:\/\/)(assets\/|_expo\/|favicon\.ico)\2/gi,
+    (match, attr, quote, pathPart) => {
+      if (match.includes('/misbaha/')) {
+        return match;
+      }
+      return `${attr}=${quote}/misbaha/${pathPart}${quote}`;
     }
   );
   
@@ -88,7 +55,7 @@ function fixPathsInFile(filePath) {
 }
 
 // Исправляем пути в index.html
-let htmlFixed = fixPathsInFile(indexPath);
+let htmlFixed = fixPathsInHtml(indexPath);
 if (htmlFixed) {
   console.log('✅ Fixed paths in index.html');
 }
@@ -132,28 +99,6 @@ htmlContent = htmlContent.replace('</head>', `${iosMetaTags}\n  </head>`);
 fs.writeFileSync(indexPath, htmlContent, 'utf8');
 console.log('✅ Added iOS PWA meta tags to index.html');
 
-// Исправляем пути во всех JS файлах
-function fixJsFiles(dir) {
-  const files = fs.readdirSync(dir);
-  let fixedCount = 0;
-  
-  for (const file of files) {
-    const filePath = path.join(dir, file);
-    const stat = fs.statSync(filePath);
-    
-    if (stat.isDirectory()) {
-      fixedCount += fixJsFiles(filePath);
-    } else if (file.endsWith('.js')) {
-      if (fixPathsInFile(filePath)) {
-        fixedCount++;
-        console.log(`✅ Fixed paths in ${path.relative(distPath, filePath)}`);
-      }
-    }
-  }
-  
-  return fixedCount;
-}
-
-const jsFilesFixed = fixJsFiles(distPath);
-console.log(`✅ Fixed paths in ${jsFilesFixed} JS file(s)`);
+console.log('⚠️  Note: JS files are NOT processed to avoid breaking regex patterns');
+console.log('📝 Paths in JS files should be handled by Expo build configuration');
 console.log('🎉 All paths fixed for GitHub Pages!');
