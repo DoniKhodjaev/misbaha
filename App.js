@@ -558,6 +558,7 @@ export default function App() {
   const audioSoundRef = React.useRef(null);
   const sessionTimerRef = React.useRef(null);
   const bismillahPlayedRef = React.useRef(false); // Флаг для отслеживания воспроизведения Бисмиллах
+  const playBismillahRef = React.useRef(null); // Ref для хранения функции playBismillah
   const COLORS_THEME = THEMES[currentTheme] || THEMES.default;
   
   // Telegram интеграция
@@ -829,8 +830,8 @@ export default function App() {
     }
   }, []);
 
-  // Определяем playBismillah до incrementCount, чтобы избежать проблем с порядком инициализации
-  const playBismillah = React.useCallback(async () => {
+  // Определяем playBismillah как обычную функцию, чтобы избежать проблем с порядком инициализации
+  const playBismillah = async () => {
     try {
       if (Platform.OS === 'web') {
         // Для веба используем HTML5 Audio API (нативный браузерный Audio)
@@ -885,7 +886,10 @@ export default function App() {
     } catch (error) {
       console.error('Ошибка воспроизведения звука:', error);
     }
-  }, []);
+  };
+  
+  // Сохраняем функцию в ref для стабильной ссылки
+  playBismillahRef.current = playBismillah;
 
   // Загрузка сохраненных данных при запуске
   useEffect(() => {
@@ -900,8 +904,8 @@ export default function App() {
       // НЕ воспроизводим звук Бисмиллах автоматически для веба
       // Браузеры блокируют автовоспроизведение без взаимодействия пользователя
       // Звук будет воспроизведен при первом взаимодействии пользователя (первый зикр)
-      if (Platform.OS !== 'web') {
-        await playBismillah();
+      if (Platform.OS !== 'web' && playBismillahRef.current) {
+        await playBismillahRef.current();
       }
       
       // Персонализированное приветствие для Telegram пользователей
@@ -1218,7 +1222,9 @@ export default function App() {
     // Воспроизводим звук Бисмиллах при первом взаимодействии пользователя (для веба)
     if (Platform.OS === 'web' && soundsEnabled && !bismillahPlayedRef.current) {
       bismillahPlayedRef.current = true;
-      playBismillah();
+      if (playBismillahRef.current) {
+        playBismillahRef.current();
+      }
     }
     
     // Вибрация - вызываем сразу, без задержки
