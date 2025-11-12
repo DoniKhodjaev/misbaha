@@ -566,6 +566,68 @@ export default function App() {
   const telegramWebAppRef = React.useRef(null);
   const lastSyncRef = React.useRef(null);
 
+  // Определяем playBismillah СРАЗУ после всех refs, используя useCallback с пустым массивом зависимостей
+  // Это гарантирует, что функция определена до всех useEffect и других функций
+  const playBismillah = useCallback(async () => {
+    try {
+      if (Platform.OS === 'web') {
+        // Для веба используем HTML5 Audio API (нативный браузерный Audio)
+        try {
+          // На вебе используем публичный путь к аудио файлу
+          const audioPath = '/misbaha/assets/assets/bismillah.mp3';
+          // Используем нативный браузерный Audio напрямую через window
+          if (typeof window !== 'undefined' && window.Audio) {
+            const audio = new window.Audio(audioPath);
+            audio.volume = 0.7;
+            
+            // Пытаемся воспроизвести, но если автовоспроизведение заблокировано, это нормально
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(error => {
+                console.log('Аудио не может быть воспроизведено автоматически:', error);
+                // На вебе автовоспроизведение может быть заблокировано браузером
+                // Это нормально для iOS Safari
+              });
+            }
+          } else {
+            console.log('HTML5 Audio API не поддерживается в этом браузере');
+          }
+        } catch (audioError) {
+          console.log('Аудио файл не найден для веба:', audioError);
+        }
+      } else {
+        // Для мобильных устройств используем expo-av
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+        });
+
+        // Загружаем и воспроизводим аудио файл Бисмиллах
+        try {
+          const { sound } = await Audio.Sound.createAsync(
+            require('./assets/bismillah.mp3'),
+            { shouldPlay: true, volume: 0.7 }
+          );
+          
+          audioSoundRef.current = sound;
+          sound.setOnPlaybackStatusUpdate((status) => {
+            if (status.didJustFinish) {
+              sound.unloadAsync();
+              audioSoundRef.current = null;
+            }
+          });
+        } catch (audioError) {
+          console.log('Аудио файл не найден, продолжаем без звука:', audioError);
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка воспроизведения звука:', error);
+    }
+  }, []); // Пустой массив зависимостей - функция не зависит от состояния компонента
+  
+  // Сохраняем функцию в ref для совместимости
+  playBismillahRef.current = playBismillah;
+
   // Проверка, запущено ли в Telegram
   const isTelegram = () => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
@@ -822,67 +884,6 @@ export default function App() {
       });
     }
   }, []);
-
-  // Определяем playBismillah как обычную функцию ДО всех useEffect, чтобы избежать проблем с порядком инициализации
-  const playBismillah = async () => {
-    try {
-      if (Platform.OS === 'web') {
-        // Для веба используем HTML5 Audio API (нативный браузерный Audio)
-        try {
-          // На вебе используем публичный путь к аудио файлу
-          const audioPath = '/misbaha/assets/assets/bismillah.mp3';
-          // Используем нативный браузерный Audio напрямую через window
-          if (typeof window !== 'undefined' && window.Audio) {
-            const audio = new window.Audio(audioPath);
-            audio.volume = 0.7;
-            
-            // Пытаемся воспроизвести, но если автовоспроизведение заблокировано, это нормально
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-              playPromise.catch(error => {
-                console.log('Аудио не может быть воспроизведено автоматически:', error);
-                // На вебе автовоспроизведение может быть заблокировано браузером
-                // Это нормально для iOS Safari
-              });
-            }
-          } else {
-            console.log('HTML5 Audio API не поддерживается в этом браузере');
-          }
-        } catch (audioError) {
-          console.log('Аудио файл не найден для веба:', audioError);
-        }
-      } else {
-        // Для мобильных устройств используем expo-av
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: false,
-        });
-
-        // Загружаем и воспроизводим аудио файл Бисмиллах
-        try {
-          const { sound } = await Audio.Sound.createAsync(
-            require('./assets/bismillah.mp3'),
-            { shouldPlay: true, volume: 0.7 }
-          );
-          
-          audioSoundRef.current = sound;
-          sound.setOnPlaybackStatusUpdate((status) => {
-            if (status.didJustFinish) {
-              sound.unloadAsync();
-              audioSoundRef.current = null;
-            }
-          });
-        } catch (audioError) {
-          console.log('Аудио файл не найден, продолжаем без звука:', audioError);
-        }
-      }
-    } catch (error) {
-      console.error('Ошибка воспроизведения звука:', error);
-    }
-  };
-  
-  // Сохраняем функцию в ref сразу после определения (без useEffect)
-  playBismillahRef.current = playBismillah;
 
   // Инициализация Telegram при загрузке
   useEffect(() => {
