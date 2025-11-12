@@ -18,7 +18,6 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
-import { Audio } from 'expo-av';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Circle, Line, Rect } from 'react-native-svg';
@@ -555,75 +554,13 @@ export default function App() {
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
   const lastDateRef = React.useRef('');
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const audioSoundRef = React.useRef(null);
   const sessionTimerRef = React.useRef(null);
-  const bismillahPlayedRef = React.useRef(false); // Флаг для отслеживания воспроизведения Бисмиллах
   const COLORS_THEME = THEMES[currentTheme] || THEMES.default;
   
   // Telegram интеграция
   const [telegramUser, setTelegramUser] = useState(null);
   const telegramWebAppRef = React.useRef(null);
   const lastSyncRef = React.useRef(null);
-
-  // Определяем playBismillah СРАЗУ после всех refs, используя useCallback с пустым массивом зависимостей
-  // Это гарантирует, что функция определена до всех useEffect и других функций
-  // НЕ сохраняем в ref во время рендера, чтобы избежать проблем с порядком инициализации
-  const playBismillah = useCallback(async () => {
-    try {
-      if (Platform.OS === 'web') {
-        // Для веба используем HTML5 Audio API (нативный браузерный Audio)
-        try {
-          // На вебе используем публичный путь к аудио файлу
-          const audioPath = '/misbaha/assets/assets/bismillah.mp3';
-          // Используем нативный браузерный Audio напрямую через window
-          if (typeof window !== 'undefined' && window.Audio) {
-            const audio = new window.Audio(audioPath);
-            audio.volume = 0.7;
-            
-            // Пытаемся воспроизвести, но если автовоспроизведение заблокировано, это нормально
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-              playPromise.catch(error => {
-                console.log('Аудио не может быть воспроизведено автоматически:', error);
-                // На вебе автовоспроизведение может быть заблокировано браузером
-                // Это нормально для iOS Safari
-              });
-            }
-          } else {
-            console.log('HTML5 Audio API не поддерживается в этом браузере');
-          }
-        } catch (audioError) {
-          console.log('Аудио файл не найден для веба:', audioError);
-        }
-      } else {
-        // Для мобильных устройств используем expo-av
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: false,
-        });
-
-        // Загружаем и воспроизводим аудио файл Бисмиллах
-        try {
-          const { sound } = await Audio.Sound.createAsync(
-            require('./assets/bismillah.mp3'),
-            { shouldPlay: true, volume: 0.7 }
-          );
-          
-          audioSoundRef.current = sound;
-          sound.setOnPlaybackStatusUpdate((status) => {
-            if (status.didJustFinish) {
-              sound.unloadAsync();
-              audioSoundRef.current = null;
-            }
-          });
-        } catch (audioError) {
-          console.log('Аудио файл не найден, продолжаем без звука:', audioError);
-        }
-      }
-    } catch (error) {
-      console.error('Ошибка воспроизведения звука:', error);
-    }
-  }, []); // Пустой массив зависимостей - функция не зависит от состояния компонента
 
   // Проверка, запущено ли в Telegram
   const isTelegram = () => {
@@ -898,13 +835,6 @@ export default function App() {
     try {
       // Загружаем данные
       await loadData();
-      
-      // НЕ воспроизводим звук Бисмиллах автоматически для веба
-      // Браузеры блокируют автовоспроизведение без взаимодействия пользователя
-      // Звук будет воспроизведен при первом взаимодействии пользователя (первый зикр)
-      if (Platform.OS !== 'web') {
-        await playBismillah();
-      }
       
       // Персонализированное приветствие для Telegram пользователей
       if (telegramUser && isTelegram()) {
@@ -1216,12 +1146,6 @@ export default function App() {
     setTodayCounts(newTodayCounts);
     
     animateButton();
-    
-    // Воспроизводим звук Бисмиллах при первом взаимодействии пользователя (для веба)
-    if (Platform.OS === 'web' && soundsEnabled && !bismillahPlayedRef.current) {
-      bismillahPlayedRef.current = true;
-      playBismillah();
-    }
     
     // Вибрация - вызываем сразу, без задержки
     if (vibrationEnabled) {
