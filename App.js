@@ -888,8 +888,10 @@ export default function App() {
     }
   };
   
-  // Сохраняем функцию в ref для стабильной ссылки
-  playBismillahRef.current = playBismillah;
+  // Сохраняем функцию в ref через useEffect для избежания проблем с порядком инициализации
+  useEffect(() => {
+    playBismillahRef.current = playBismillah;
+  });
 
   // Загрузка сохраненных данных при запуске
   useEffect(() => {
