@@ -561,12 +561,109 @@ export default function App() {
   const [telegramUser, setTelegramUser] = useState(null);
   const telegramWebAppRef = React.useRef(null);
   const lastSyncRef = React.useRef(null);
+  const syncDataWithBotRef = React.useRef(null);
+  const sendStatsToBotRef = React.useRef(null);
 
   // Проверка, запущено ли в Telegram
   const isTelegram = () => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
     return !!window.Telegram?.WebApp;
   };
+
+  // Синхронизация данных с ботом - определяем СРАЗУ после refs, чтобы избежать проблем с порядком инициализации
+  const syncDataWithBot = useCallback(() => {
+    if (!isTelegram() || !telegramWebAppRef.current) return;
+    
+    const tg = telegramWebAppRef.current;
+    
+    // Подготавливаем данные для синхронизации
+    const syncData = {
+      type: 'sync',
+      todayCount,
+      totalAllTime,
+      streakDays,
+      dailyGoal,
+      history: history.slice(-30), // Последние 30 дней
+      achievements,
+      counts,
+      todayCounts,
+      lastSync: new Date().toISOString(),
+    };
+    
+    // Сохраняем данные в localStorage для надежности
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('misbaha_sync_data', JSON.stringify(syncData));
+        localStorage.setItem('misbaha_last_sync', new Date().toISOString());
+      }
+    } catch (e) {
+      console.log('Не удалось сохранить в localStorage:', e);
+    }
+    
+    // Отправляем данные через sendData
+    try {
+      if (tg.sendData) {
+        tg.sendData(JSON.stringify(syncData));
+        lastSyncRef.current = new Date();
+        console.log('✅ Данные отправлены в бот:', {
+          todayCount,
+          totalAllTime,
+          streakDays
+        });
+      } else {
+        console.warn('⚠️ sendData недоступен');
+      }
+    } catch (error) {
+      console.error('Ошибка синхронизации данных:', error);
+    }
+  }, [todayCount, totalAllTime, streakDays, dailyGoal, history, achievements, counts, todayCounts]);
+
+  // Отправка статистики в бот - определяем СРАЗУ после syncDataWithBot
+  const sendStatsToBot = useCallback(() => {
+    if (!isTelegram() || !telegramWebAppRef.current) return;
+    
+    const tg = telegramWebAppRef.current;
+    const statsData = {
+      type: 'stats',
+      todayCount,
+      totalAllTime,
+      streakDays,
+      dailyGoal,
+      progress: dailyGoal > 0 ? Math.round((todayCount / dailyGoal) * 100) : 0,
+      history: history.slice(-30),
+      achievements,
+      counts,
+      todayCounts,
+      lastSync: new Date().toISOString(),
+    };
+    
+    // Вычисляем статистику
+    if (history.length > 0) {
+      const totals = history.map(h => h.total);
+      statsData.average = Math.round(totals.reduce((a, b) => a + b, 0) / totals.length);
+      statsData.bestDay = Math.max(...totals);
+      statsData.totalDays = history.length;
+    } else {
+      statsData.average = 0;
+      statsData.bestDay = 0;
+      statsData.totalDays = 0;
+    }
+    
+    statsData.achievementsCount = achievements.length;
+    
+    try {
+      tg.sendData(JSON.stringify(statsData));
+      console.log('✅ Статистика отправлена в бот');
+    } catch (error) {
+      console.error('Ошибка отправки статистики:', error);
+    }
+  }, [todayCount, totalAllTime, streakDays, dailyGoal, history, achievements, counts, todayCounts]);
+
+  // Сохраняем функции в refs через useEffect, чтобы избежать проблем с порядком инициализации
+  useEffect(() => {
+    syncDataWithBotRef.current = syncDataWithBot;
+    sendStatsToBotRef.current = sendStatsToBot;
+  }, [syncDataWithBot, sendStatsToBot]);
 
   // Инициализация Telegram Web App
   const initTelegramWebApp = () => {
@@ -628,21 +725,23 @@ export default function App() {
     // Обработчик события закрытия Mini App - отправляем данные
     tg.onEvent('viewportChanged', (event) => {
       // При изменении viewport (например, при закрытии) отправляем данные
-      if (event.isStateStable) {
-        syncDataWithBot();
+      if (event.isStateStable && syncDataWithBotRef.current) {
+        syncDataWithBotRef.current();
       }
     });
     
     // Обработчик закрытия приложения
     tg.onEvent('close', () => {
       // При закрытии отправляем финальные данные
-      syncDataWithBot();
+      if (syncDataWithBotRef.current) {
+        syncDataWithBotRef.current();
+      }
     });
     
     // Периодическая синхронизация каждые 30 секунд
     const syncInterval = setInterval(() => {
-      if (isTelegram() && telegramWebAppRef.current) {
-        syncDataWithBot();
+      if (isTelegram() && telegramWebAppRef.current && syncDataWithBotRef.current) {
+        syncDataWithBotRef.current();
       }
     }, 30000);
     
@@ -716,95 +815,6 @@ export default function App() {
       }
     }
   };
-
-  // Синхронизация данных с ботом
-  const syncDataWithBot = useCallback(() => {
-    if (!isTelegram() || !telegramWebAppRef.current) return;
-    
-    const tg = telegramWebAppRef.current;
-    
-    // Подготавливаем данные для синхронизации
-    const syncData = {
-      type: 'sync',
-      todayCount,
-      totalAllTime,
-      streakDays,
-      dailyGoal,
-      history: history.slice(-30), // Последние 30 дней
-      achievements,
-      counts,
-      todayCounts,
-      lastSync: new Date().toISOString(),
-    };
-    
-    // Сохраняем данные в localStorage для надежности
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem('misbaha_sync_data', JSON.stringify(syncData));
-        localStorage.setItem('misbaha_last_sync', new Date().toISOString());
-      }
-    } catch (e) {
-      console.log('Не удалось сохранить в localStorage:', e);
-    }
-    
-    // Отправляем данные через sendData
-    try {
-      if (tg.sendData) {
-        tg.sendData(JSON.stringify(syncData));
-        lastSyncRef.current = new Date();
-        console.log('✅ Данные отправлены в бот:', {
-          todayCount,
-          totalAllTime,
-          streakDays
-        });
-      } else {
-        console.warn('⚠️ sendData недоступен');
-      }
-    } catch (error) {
-      console.error('Ошибка синхронизации данных:', error);
-    }
-  }, [todayCount, totalAllTime, streakDays, dailyGoal, history, achievements, counts, todayCounts]);
-
-  // Отправка статистики в бот
-  const sendStatsToBot = useCallback(() => {
-    if (!isTelegram() || !telegramWebAppRef.current) return;
-    
-    const tg = telegramWebAppRef.current;
-    const statsData = {
-      type: 'stats',
-      todayCount,
-      totalAllTime,
-      streakDays,
-      dailyGoal,
-      progress: dailyGoal > 0 ? Math.round((todayCount / dailyGoal) * 100) : 0,
-      history: history.slice(-30),
-      achievements,
-      counts,
-      todayCounts,
-      lastSync: new Date().toISOString(),
-    };
-    
-    // Вычисляем статистику
-    if (history.length > 0) {
-      const totals = history.map(h => h.total);
-      statsData.average = Math.round(totals.reduce((a, b) => a + b, 0) / totals.length);
-      statsData.bestDay = Math.max(...totals);
-      statsData.totalDays = history.length;
-    } else {
-      statsData.average = 0;
-      statsData.bestDay = 0;
-      statsData.totalDays = 0;
-    }
-    
-    statsData.achievementsCount = achievements.length;
-    
-    try {
-      tg.sendData(JSON.stringify(statsData));
-      console.log('✅ Статистика отправлена в бот');
-    } catch (error) {
-      console.error('Ошибка отправки статистики:', error);
-    }
-  }, [todayCount, totalAllTime, streakDays, dailyGoal, history, achievements, counts, todayCounts]);
 
   // Настройка обработчика уведомлений
   useEffect(() => {
@@ -893,7 +903,9 @@ export default function App() {
       if (isTelegram() && (!lastSyncRef.current || (new Date() - lastSyncRef.current) > 10000)) {
         // Используем setTimeout для асинхронной отправки
         setTimeout(() => {
-          syncDataWithBot();
+          if (syncDataWithBotRef.current) {
+            syncDataWithBotRef.current();
+          }
         }, 500);
       }
     }
@@ -1174,8 +1186,8 @@ export default function App() {
       }
       
       // Отправляем статистику в бот при достижении цели
-      if (isTelegram()) {
-        sendStatsToBot();
+      if (isTelegram() && sendStatsToBotRef.current) {
+        sendStatsToBotRef.current();
       }
       
       Alert.alert(t.goalAchieved, t.goalAchievedText.replace('{goal}', dailyGoal));
@@ -2195,7 +2207,9 @@ export default function App() {
           <TouchableOpacity 
             style={[styles.actionButton, { borderColor: COLORS_THEME.darkTeal, backgroundColor: COLORS_THEME.darkTeal }]} 
             onPress={() => {
-              sendStatsToBot();
+              if (sendStatsToBotRef.current) {
+                sendStatsToBotRef.current();
+              }
               Alert.alert(t.success, 'Статистика отправлена в бот! Используйте команду /stats в боте для просмотра.');
             }}
           >
@@ -2205,14 +2219,18 @@ export default function App() {
           <TouchableOpacity 
             style={[styles.actionButton, { borderColor: COLORS_THEME.darkTeal }]} 
             onPress={() => {
-              syncDataWithBot();
+              if (syncDataWithBotRef.current) {
+                syncDataWithBotRef.current();
+              }
               // Показываем MainButton для подтверждения отправки
               if (isTelegram() && telegramWebAppRef.current?.MainButton) {
                 const mainButton = telegramWebAppRef.current.MainButton;
                 mainButton.setText('📤 Отправка данных...');
                 mainButton.show();
                 mainButton.onClick(() => {
-                  syncDataWithBot();
+                  if (syncDataWithBotRef.current) {
+                syncDataWithBotRef.current();
+              }
                   mainButton.hide();
                   Alert.alert(t.success, 'Данные синхронизированы с ботом!');
                 });
